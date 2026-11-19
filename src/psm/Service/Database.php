@@ -197,7 +197,7 @@ class Database
     {
         // build query
         $query_parts = array();
-        $query_parts[] = 'SELECT SQL_CALC_FOUND_ROWS';
+        $query_parts[] = 'SELECT';
 
         // Fields
         if ($fields !== null && !empty($fields)) {
@@ -373,7 +373,7 @@ class Database
         if (isset($if_exists[0]['cnt']) && $if_exists[0]['cnt'] == 1) {
             return true;
         } else {
-            false;
+            return false;
         }
     }
 
@@ -384,7 +384,7 @@ class Database
      */
     public function quote($value)
     {
-        return $this->pdo()->quote($value);
+        return $this->pdo()->quote((string) $value);
     }
 
     /**
@@ -535,11 +535,13 @@ class Database
     {
         // Initizale connection
         try {
+            $dsn = 'mysql:host=' . $this->db_host;
+            if (!empty($this->db_port)) {
+                $dsn .= ';port=' . $this->db_port;
+            }
+            $dsn .= ';dbname=' . $this->db_name . ';charset=utf8mb4';
             $this->pdo = new \PDO(
-                'mysql:host=' . $this->db_host .
-                    ';port=' . $this->db_port .
-                    ';dbname=' . $this->db_name .
-                    ';charset=utf8',
+                $dsn,
                 $this->db_user,
                 $this->db_pass
             );

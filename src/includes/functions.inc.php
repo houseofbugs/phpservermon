@@ -403,7 +403,7 @@ namespace {
         $request_method = null,
         $post_field = null
     ) {
-        ($timeout === null || $timeout > 0) ? PSM_CURL_TIMEOUT : intval($timeout);
+        $timeout = ($timeout === null || intval($timeout) <= 0) ? PSM_CURL_TIMEOUT : intval($timeout);
 
         $ch = curl_init();
         if (defined('PSM_DEBUG') && PSM_DEBUG === true && psm_is_cli()) {
@@ -490,18 +490,13 @@ namespace {
         if ($time < strtotime(date('Y-m-d 00:00:00')) - 60 * 60 * 24 * 3) {
             $format = psm_get_lang('system', (date('Y') !== date('Y', $time)) ?
             'long_day_format' : 'short_day_format');
-            // Check for Windows to find and replace the %e
-            // modifier correctly
-            if (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN') {
-                $format = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $format);
-            }
-            return strftime($format, $time);
+            return psm_strftime($format, (int) $time);
         }
         $d = time() - $time;
         if ($d >= 60 * 60 * 24) {
             $format = psm_get_lang('system', (date('l', time() - 60 * 60 * 24) == date('l', $time)) ?
             'yesterday_format' : 'other_day_format');
-            return strftime($format, $time);
+            return psm_strftime($format, (int) $time);
         }
         if ($d >= 60 * 60 * 2) {
             return sprintf(psm_get_lang('system', 'hours_ago'), intval($d / (60 * 60)));
@@ -532,7 +527,118 @@ namespace {
         if (empty($time) || $time == '0000-00-00 00:00:00') {
             return psm_get_lang('system', 'never');
         }
-        return strftime('%x %X', strtotime($time));
+        return psm_strftime('%x %X', (int) strtotime($time));
+    }
+
+/**
+ * Format a timestamp using a strftime-compatible format string without deprecated strftime().
+ *
+ * @param string $format
+ * @param int $timestamp
+ * @return string
+ */
+    function psm_strftime(string $format, int $timestamp): string
+    {
+        $dt = new \DateTime();
+        $dt->setTimestamp($timestamp);
+
+        $locale = $GLOBALS['sm_lang']['locale'][1] ?? ($GLOBALS['sm_lang_default']['locale'][1] ?? 'en_US');
+        $tz = $dt->getTimezone();
+        if ($tz->getName() === 'Z') {
+            $tz = new \DateTimeZone('UTC');
+        }
+
+        $intlFormat = static function (string $pattern, int $dateType = \IntlDateFormatter::NONE, int $timeType = \IntlDateFormatter::NONE) use ($locale, $tz, $dt): ?string {
+            if (!class_exists(\IntlDateFormatter::class)) {
+                return null;
+            }
+            $fmt = \IntlDateFormatter::create($locale, $dateType, $timeType, $tz, \IntlDateFormatter::GREGORIAN, $pattern);
+            if ($fmt === null) {
+                return null;
+            }
+            $formatted = $fmt->format($dt);
+            return ($formatted === false) ? null : $formatted;
+        };
+
+        return preg_replace_callback('/%(#?[a-zA-Z%])/', static function (array $matches) use ($dt, $timestamp, $intlFormat): string {
+            $token = $matches[1];
+            switch ($token) {
+                case '%':
+                    return '%';
+                case 'a':
+                    return $intlFormat('EEE') ?? $dt->format('D');
+                case 'A':
+                    return $intlFormat('EEEE') ?? $dt->format('l');
+                case 'b':
+                case 'h':
+                    return $intlFormat('MMM') ?? $dt->format('M');
+                case 'B':
+                    return $intlFormat('MMMM') ?? $dt->format('F');
+                case 'd':
+                    return $dt->format('d');
+                case 'e':
+                case '#d':
+                    return $dt->format('j');
+                case 'j':
+                    return str_pad((string) ((int) $dt->format('z') + 1), 3, '0', STR_PAD_LEFT);
+                case 'u':
+                    return $dt->format('N');
+                case 'w':
+                    return $dt->format('w');
+                case 'W':
+                    return $dt->format('W');
+                case 'm':
+                    return $dt->format('m');
+                case 'y':
+                    return $dt->format('y');
+                case 'Y':
+                    return $dt->format('Y');
+                case 'D':
+                    return $dt->format('m/d/y');
+                case 'F':
+                    return $dt->format('Y-m-d');
+                case 'x':
+                    return $intlFormat('', \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE) ?? $dt->format('Y-m-d');
+                case 'X':
+                    return $intlFormat('', \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM) ?? $dt->format('H:i:s');
+                case 'c':
+                    return $intlFormat('', \IntlDateFormatter::MEDIUM, \IntlDateFormatter::MEDIUM) ?? $dt->format('D M j H:i:s Y');
+                case 'n':
+                    return "\n";
+                case 't':
+                    return "\t";
+                case 'H':
+                    return $dt->format('H');
+                case 'k':
+                    return $dt->format('G');
+                case 'I':
+                    return $dt->format('h');
+                case 'l':
+                    return $dt->format('g');
+                case 'M':
+                    return $dt->format('i');
+                case 'p':
+                    return $dt->format('A');
+                case 'P':
+                    return $dt->format('a');
+                case 'r':
+                    return $dt->format('h:i:s A');
+                case 'R':
+                    return $dt->format('H:i');
+                case 'S':
+                    return $dt->format('s');
+                case 'T':
+                    return $dt->format('H:i:s');
+                case 'z':
+                    return $dt->format('O');
+                case 'Z':
+                    return $dt->format('T');
+                case 's':
+                    return (string) $timestamp;
+                default:
+                    return $matches[0];
+            }
+        }, $format) ?? $format;
     }
 
 /**
@@ -561,7 +667,7 @@ namespace {
             }
             // extract latest version from Github.
             $githubInfo = json_decode($latest['exec']);
-            if (property_exists($githubInfo, 'tag_name') === false) {
+            if (!is_object($githubInfo) || !property_exists($githubInfo, 'tag_name')) {
                 // version not found
                 return false;
             }
@@ -807,7 +913,7 @@ namespace {
             // on Windows, dirname() adds both back- and forward slashes (http://php.net/dirname).
             // for urls, we only want the forward slashes.
             $url .= dirname($_SERVER['SCRIPT_NAME']);
-            $url = str_replace('\\', '', $url);
+            $url = str_replace('\\', '/', $url);
         }
         $url = rtrim($url, '/') . '/';
 

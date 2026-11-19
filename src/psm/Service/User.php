@@ -89,7 +89,7 @@ class User
      * @param \psm\Service\Database $db
      * @param \Symfony\Component\HttpFoundation\Session\SessionInterface $session if NULL, one will be created
      */
-    public function __construct(Database $db, SessionInterface $session = null)
+    public function __construct(Database $db, ?SessionInterface $session = null)
     {
         $this->db_connection = $db->pdo();
 
@@ -279,7 +279,7 @@ class User
     protected function newRememberMeCookie()
     {
         // generate 64 char random string and store it in current user data
-        $random_token_string = hash('sha256', mt_rand());
+        $random_token_string = bin2hex(random_bytes(32));
         $sth = $this->db_connection->prepare('UPDATE ' .
             PSM_DB_PREFIX . 'users SET rememberme_token = :user_rememberme_token WHERE user_id = :user_id');
         $sth->execute(array(':user_rememberme_token' => $random_token_string, ':user_id' => $this->getUserId()));
@@ -290,7 +290,7 @@ class User
         $cookie_string = $cookie_string_first_part . ':' . $cookie_string_hash;
 
         // set cookie
-        setcookie('rememberme', $cookie_string, time() + PSM_LOGIN_COOKIE_RUNTIME, "/", PSM_LOGIN_COOKIE_DOMAIN);
+        setcookie('rememberme', $cookie_string, time() + PSM_LOGIN_COOKIE_RUNTIME, "/", PSM_LOGIN_COOKIE_DOMAIN ?? '');
     }
 
     /**
@@ -308,7 +308,7 @@ class User
         // set the rememberme-cookie to ten years ago (3600sec * 365 days * 10).
         // that's obivously the best practice to kill a cookie via php
         // @see http://stackoverflow.com/a/686166/1114320
-        setcookie('rememberme', false, time() - (3600 * 3650), '/', PSM_LOGIN_COOKIE_DOMAIN);
+        setcookie('rememberme', '', time() - (3600 * 3650), '/', PSM_LOGIN_COOKIE_DOMAIN ?? '');
     }
 
     /**
@@ -349,7 +349,7 @@ class User
         // generate timestamp (to see when exactly the user (or an attacker) requested the password reset mail)
         $temporary_timestamp = time();
         // generate random hash for email password reset verification (40 char string)
-        $user_password_reset_hash = sha1(uniqid(mt_rand(), true));
+        $user_password_reset_hash = bin2hex(random_bytes(20));
 
         $query_update = $this->db_connection->prepare('UPDATE ' .
             PSM_DB_PREFIX . 'users SET password_reset_hash = :user_password_reset_hash,

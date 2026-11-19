@@ -217,7 +217,7 @@ class Router
 
     /**
      * Prepare twig environment
-     * @return \Twig_Environment
+     * @return \Twig\Environment
      */
     protected function buildTwigEnvironment()
     {
@@ -231,7 +231,7 @@ class Router
         }
 
         $twig->addFunction(
-            new \Twig_SimpleFunction(
+            new \Twig\TwigFunction(
                 'csrf_token',
                 function ($lock_to = null) use ($session) {
                     if (empty($lock_to)) {

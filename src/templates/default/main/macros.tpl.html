@@ -2,7 +2,7 @@
     <input type="hidden" name="csrf" value="{{ csrf_token(csrf_key|default('')) }}" />
 {% endmacro input_csrf %}
 
-{% macro input_checkbox(id, name, label, checked, help, help_label) %}
+{% macro input_checkbox(id, name, label, checked = null, help = null, help_label = null) %}
     <div class="form-group">
         <div class="custom-control custom-checkbox">
             <input type="checkbox" class="custom-control-input" id="{{ id }}" name="{{ name }}"
@@ -16,7 +16,7 @@
     </div>
 {% endmacro input_checkbox %}
 
-{% macro input_select(id, name, label, options, current, help, help_label) %}
+{% macro input_select(id, name, label, options, current = null, help = null, help_label = null) %}
     <div class="form-group">
         <label for="{{ id }}">{{ label }}</label>
         <select id="{{ id }}" name="{{ name }}" class="custom-select" {% if help %}aria-describedby="{{ help }}"{% endif %}>
@@ -46,7 +46,7 @@
     </div>
 {% endmacro input_select_multiple %}
 
-{% macro input_select_monitoring(id, name, label, current, label_yes, label_no, warning, warning_label) %}
+{% macro input_select_monitoring(id, name, label, current, label_yes, label_no, warning = null, warning_label = null) %}
     <div class="form-group form-row">
         {% if warning %}
         <div class="alert alert-warning col-md-12" role="alert">
@@ -63,7 +63,7 @@
     </div>
 {% endmacro %}
 
-{% macro input_field(type, id, class, name, label, value, placeholder, max, help, help_label, side_label, readonly, required, autofocus, autocomplete, disabled) %}
+{% macro input_field(type, id, class, name, label, value = null, placeholder = null, max = null, help = null, help_label = null, side_label = null, readonly = false, required = false, autofocus = false, autocomplete = null, disabled = false) %}
     <div class="form-group {% if class %}{{ class }}{% endif %}">
         <label for="{{ id }}">{{ label }}</label>
         {% if side_label and help %}

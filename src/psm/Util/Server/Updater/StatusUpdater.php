@@ -89,7 +89,7 @@ class StatusUpdater
         $this->error = '';
         $this->header = '';
         $this->curl_info = '';
-        $this->rtime = '';
+        $this->rtime = 0;
 
         // get server info from db
         $this->server = $this->db->selectRow(PSM_DB_PREFIX . 'servers', array(
@@ -139,10 +139,12 @@ class StatusUpdater
             $save['last_output'] = substr($this->header, 0, 5000);
             $save['warning_threshold_counter'] = 0;
             if ($this->server['status'] == 'off') {
-                $online_date = new \DateTime($save['last_online']);
-                $offline_date = new \DateTime($this->server['last_offline']);
-                $difference = $online_date->diff($offline_date);
-                $save['last_offline_duration'] = trim(psm_format_interval($difference));
+                if (!empty($this->server['last_offline'])) {
+                    $online_date = new \DateTime($save['last_online']);
+                    $offline_date = new \DateTime($this->server['last_offline']);
+                    $difference = $online_date->diff($offline_date);
+                    $save['last_offline_duration'] = trim(psm_format_interval($difference));
+                }
             }
         } else {
             // server is offline, increase the error counter and set last offline
@@ -179,37 +181,56 @@ class StatusUpdater
             $max_runs = 1;
         }
         $result = null;
-        // Execute ping
-        $pingCommand = 'ping6';
+        $output = array();
+        $exitCode = 1;
         $serverIp = $this->server['ip'];
-        if (filter_var($serverIp,FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false){
-            $pingCommand = 'ping';
-        }        
-        $txt = exec($pingCommand . " -c " . $max_runs . " " . $serverIp . " 2>&1", $output);
-        // Non-greedy match on filler
-        $re1 = '.*?';
-        // Uninteresting: float
-        $re2 = '[+-]?\\d*\\.\\d+(?![-+0-9\\.])';
-        // Non-greedy match on filler
-        $re3 = '.*?';
-        // Float 1
-        $re4 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';
-        if (preg_match_all("/" . $re1 . $re2 . $re3 . $re4 . "/is", $txt, $matches)) {
-            $result = $matches[1][0];
+        $isIPv6 = filter_var($serverIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+        $isWindows = stripos(PHP_OS, 'WIN') === 0;
+
+        if ($isWindows) {
+            $cmd = 'ping ' . ($isIPv6 ? '-6 ' : '') . '-n ' . (int) $max_runs . ' -w 2000 ' . escapeshellarg($serverIp) . ' 2>&1';
+            exec($cmd, $output, $exitCode);
+            $fullOutput = implode("\n", $output);
+            if ($exitCode === 0 && preg_match('/Received\s*=\s*([1-9]\d*)/i', $fullOutput)) {
+                if (preg_match('/Average\s*=\s*(\d+)\s*ms/i', $fullOutput, $matches)) {
+                    $result = (float) $matches[1];
+                } elseif (preg_match('/time[=<]\s*([\d.]+)\s*ms/i', $fullOutput, $matches)) {
+                    $result = (float) $matches[1];
+                } else {
+                    $result = 0.0;
+                }
+            }
+        } else {
+            $pingCommand = $isIPv6 ? 'ping6' : 'ping';
+            $txt = exec($pingCommand . ' -c ' . (int) $max_runs . ' ' . escapeshellarg($serverIp) . ' 2>&1', $output, $exitCode);
+            // Non-greedy match on filler
+            $re1 = '.*?';
+            // Uninteresting: float
+            $re2 = '[+-]?\\d*\\.\\d+(?![-+0-9\\.])';
+            // Non-greedy match on filler
+            $re3 = '.*?';
+            // Float 1
+            $re4 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';
+            if (preg_match_all('/' . $re1 . $re2 . $re3 . $re4 . '/is', $txt, $matches)) {
+                $result = (float) $matches[1][0];
+            }
+            if (!empty($output) && substr($output[0], 0, 4) == 'PING' && isset($output[count($output) - 2]) && strpos($output[count($output) - 2], 'packets transmitted')) {
+                if ($result === null && $exitCode === 0) {
+                    $result = 0.0;
+                }
+            }
         }
-        if (substr($output[0],0,4) == 'PING' && strpos($output[count($output)-2],'packets transmitted')){
-            $result = 0;     
-        }        
+
         if (!is_null($result)) {
-            $this->header = $output[0];
+            $this->header = $output[0] ?? '';
             $status = true;
         } else {
-            $this->header = "-";
-            $this->error = $output[0];
+            $this->header = '-';
+            $this->error = $output[0] ?? 'Ping failed';
             $status = false;
         }
-        //Divide by a thousand to convert to milliseconds
-        $this->rtime =  $result / 1000;
+        // Divide by a thousand to convert to seconds
+        $this->rtime = ($result !== null) ? ($result / 1000) : 0;
 
         // check if server is available and rerun if asked.
         if (!$status && $run < $max_runs) {
@@ -226,7 +247,7 @@ class StatusUpdater
      */
     protected function updateService($max_runs, $run = 1)
     {
-        $timeout = ($this->server['timeout'] === null || $this->server['timeout'] > 0) ?
+        $timeout = ($this->server['timeout'] === null || intval($this->server['timeout']) <= 0) ?
             PSM_CURL_TIMEOUT : intval($this->server['timeout']);
         $errno = 0;
         // save response time

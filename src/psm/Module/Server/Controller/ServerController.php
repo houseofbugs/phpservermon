@@ -42,7 +42,7 @@ class ServerController extends AbstractServerController
      */
     protected $server_id;
 
-    public function __construct(Database $db, \Twig_Environment $twig)
+    public function __construct(Database $db, \Twig\Environment $twig)
     {
         parent::__construct($db, $twig);
 
@@ -296,21 +296,21 @@ class ServerController extends AbstractServerController
             'post_field' => empty(psm_POST('post_field')) ? null : psm_POST('post_field'),
             'type' => psm_POST('type', ''),
             'pattern' => psm_POST('pattern', ''),
-            'pattern_online' => in_array($_POST['pattern_online'], array('yes', 'no')) ?
-                $_POST['pattern_online'] : 'yes',
-            'redirect_check' => in_array($_POST['redirect_check'], array('ok', 'bad')) ?
-                $_POST['redirect_check'] : 'bad',
+            'pattern_online' => in_array(psm_POST('pattern_online'), array('yes', 'no')) ?
+                psm_POST('pattern_online') : 'yes',
+            'redirect_check' => in_array(psm_POST('redirect_check'), array('ok', 'bad')) ?
+                psm_POST('redirect_check') : 'bad',
             'allow_http_status' => psm_POST('allow_http_status', ''),
             'header_name' => psm_POST('header_name', ''),
             'header_value' => psm_POST('header_value', ''),
             'warning_threshold' => intval(psm_POST('warning_threshold', 0)),
             'ssl_cert_expiry_days' => intval(psm_POST('ssl_cert_expiry_days', 1)),
-            'active' => in_array($_POST['active'], array('yes', 'no')) ? $_POST['active'] : 'no',
-            'email' => in_array($_POST['email'], array('yes', 'no')) ? $_POST['email'] : 'no',
-            'sms' => in_array($_POST['sms'], array('yes', 'no')) ? $_POST['sms'] : 'no',
-            'pushover' => in_array($_POST['pushover'], array('yes', 'no')) ? $_POST['pushover'] : 'no',
-            'telegram' => in_array($_POST['telegram'], array('yes', 'no')) ? $_POST['telegram'] : 'no',
-	        'jabber' => in_array($_POST['jabber'], array('yes', 'no')) ? $_POST['jabber'] : 'no',
+            'active' => in_array(psm_POST('active'), array('yes', 'no')) ? psm_POST('active') : 'no',
+            'email' => in_array(psm_POST('email'), array('yes', 'no')) ? psm_POST('email') : 'no',
+            'sms' => in_array(psm_POST('sms'), array('yes', 'no')) ? psm_POST('sms') : 'no',
+            'pushover' => in_array(psm_POST('pushover'), array('yes', 'no')) ? psm_POST('pushover') : 'no',
+            'telegram' => in_array(psm_POST('telegram'), array('yes', 'no')) ? psm_POST('telegram') : 'no',
+            'jabber' => in_array(psm_POST('jabber'), array('yes', 'no')) ? psm_POST('jabber') : 'no',
         );
         // make sure websites start with http://
         if (
@@ -508,15 +508,15 @@ class ServerController extends AbstractServerController
             );
         }
                 
-        $tpl_data['last_output_truncated'] = $tpl_data['last_output'];
-        $tpl_data['last_error_output_truncated'] = $tpl_data['last_error_output'];
-                
-        if (strlen($tpl_data['last_output']) > 255) {
-            $tpl_data['last_output_truncated'] = substr($tpl_data['last_output'], 0, 255) . '...';
+        $tpl_data['last_output_truncated'] = (string) ($tpl_data['last_output'] ?? '');
+        $tpl_data['last_error_output_truncated'] = (string) ($tpl_data['last_error_output'] ?? '');
+
+        if (strlen((string) ($tpl_data['last_output'] ?? '')) > 255) {
+            $tpl_data['last_output_truncated'] = substr((string) $tpl_data['last_output'], 0, 255) . '...';
         }
-                
-        if (strlen($tpl_data['last_error_output']) > 255) {
-            $tpl_data['last_error_output_truncated'] = substr($tpl_data['last_error_output'], 0, 255) . '...';
+
+        if (strlen((string) ($tpl_data['last_error_output'] ?? '')) > 255) {
+            $tpl_data['last_error_output_truncated'] = substr((string) $tpl_data['last_error_output'], 0, 255) . '...';
         }
                 
         return $this->twig->render('module/server/server/view.tpl.html', $tpl_data);
