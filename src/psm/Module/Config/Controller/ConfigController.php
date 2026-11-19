@@ -284,6 +284,7 @@ class ConfigController extends AbstractController
             'label_settings_proxy' => psm_get_lang('config', 'settings_proxy'),
             'label_general' => psm_get_lang('config', 'general'),
             'label_site_title' => psm_get_lang('config', 'site_title'),
+            'label_site_title_description' => psm_get_lang('config', 'site_title_description'),
             'label_language' => psm_get_lang('config', 'language'),
             'label_show_update' => psm_get_lang('config', 'show_update'),
             'label_password_encrypt_key' => psm_get_lang('config', 'password_encrypt_key'),

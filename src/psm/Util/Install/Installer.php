@@ -140,9 +140,8 @@ class Installer
                 ('smtp.gmail.com', 465, 'Gmail SMTP', 'service', '',
                 'yes', 'bad','on', '0', 'yes', 'yes')";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "users_servers` (`user_id`,`server_id`) VALUES (1, 1), (1, 2);";
-        $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "users` (`user_name`, `password`, `level`, `name`, `email`)
-            VALUES ('__PUBLIC__', '', 30, 'Public page', 'publicpage@psm.psm');";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "config` (`key`, `value`) VALUE
+                    ('site_title', '" . PSM_BRAND_NAME . "'),
                     ('language', 'en_US'),
                     ('proxy', '0'),
                     ('proxy_url', ''),
@@ -246,6 +245,7 @@ class Installer
                 `last_offline_duration` varchar(255) NULL,
                 `last_check` datetime NULL,
                 `active` enum('yes','no') NOT NULL default 'yes',
+                `public` enum('yes','no') NOT NULL default 'no',
                 `email` enum('yes','no') NOT NULL default 'yes',
                 `warning_threshold` mediumint(1) unsigned NOT NULL DEFAULT '1',
                 `warning_threshold_counter` mediumint(1) unsigned NOT NULL DEFAULT '0',
@@ -386,8 +386,6 @@ class Installer
             . "log` AS `l` ON `l`.`log_id` = `lu`.`log_id` WHERE `l`.`log_id` IS NULL;";
         $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "users`
             CHANGE `password_reset_hash` `password_reset_hash` varchar(64) DEFAULT NULL COMMENT 'user''s password reset code';";
-        $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "users` (`user_name`, `password`, `level`, `name`, `email`)
-            VALUES ('__PUBLIC__', '', 30, 'Public page', 'publicpage@psm.psm');";
         foreach (array('sms', 'pushover', 'telegram', 'jabber', 'discord', 'webhook') as $column) {
             if ($this->columnExists('servers', $column)) {
                 $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "servers` DROP COLUMN `{$column}`;";
@@ -406,7 +404,34 @@ class Installer
             OR `key` IN ('discord_status', 'webhook_status', 'webhook_url', 'webhook_json',
                 'log_sms', 'log_pushover', 'log_telegram', 'log_jabber', 'log_jdiscord');";
         $this->execSQL($queries);
+        $this->ensurePublicColumn();
         $this->log('SMS, Pushover, Telegram and Jabber channels removed. Configure Notification targets instead.');
+    }
+
+    /**
+     * Ensure `servers.public` exists (default 'no'), migrate any `__PUBLIC__` assignments,
+     * and remove the legacy `__PUBLIC__` pseudo-user rows.
+     */
+    public function ensurePublicColumn()
+    {
+        $queries = array();
+        if (!$this->columnExists('servers', 'public')) {
+            $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "servers`
+                ADD COLUMN `public` enum('yes','no') NOT NULL DEFAULT 'no' AFTER `active`;";
+            $queries[] = "UPDATE `" . PSM_DB_PREFIX . "servers` AS `s`
+                JOIN `" . PSM_DB_PREFIX . "users_servers` AS `us` ON `us`.`server_id` = `s`.`server_id`
+                JOIN `" . PSM_DB_PREFIX . "users` AS `u` ON `u`.`user_id` = `us`.`user_id`
+                SET `s`.`public` = 'yes'
+                WHERE `u`.`user_name` = '__PUBLIC__';";
+        }
+        $queries[] = "DELETE `us` FROM `" . PSM_DB_PREFIX . "users_servers` AS `us`
+            JOIN `" . PSM_DB_PREFIX . "users` AS `u` ON `u`.`user_id` = `us`.`user_id`
+            WHERE `u`.`user_name` = '__PUBLIC__';";
+        $queries[] = "DELETE `up` FROM `" . PSM_DB_PREFIX . "users_preferences` AS `up`
+            JOIN `" . PSM_DB_PREFIX . "users` AS `u` ON `u`.`user_id` = `up`.`user_id`
+            WHERE `u`.`user_name` = '__PUBLIC__';";
+        $queries[] = "DELETE FROM `" . PSM_DB_PREFIX . "users` WHERE `user_name` = '__PUBLIC__';";
+        $this->execSQL($queries);
     }
 
     /**

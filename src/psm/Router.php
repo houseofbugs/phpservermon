@@ -215,6 +215,9 @@ class Router
         return $builder;
     }
 
+    /** @var bool */
+    protected $twig_built = false;
+
     /**
      * Prepare twig environment
      * @return \Twig\Environment
@@ -222,6 +225,11 @@ class Router
     protected function buildTwigEnvironment()
     {
         $twig = $this->container->get('twig');
+        if ($this->twig_built) {
+            return $twig;
+        }
+        $this->twig_built = true;
+
         $session = $this->container->get('user')->getSession();
         if (!$session->has('csrf_token')) {
             $session->set('csrf_token', bin2hex(random_bytes(32)));
@@ -241,6 +249,11 @@ class Router
                 }
             )
         );
+        $is_logged_in = (!defined('PSM_INSTALL') || !PSM_INSTALL) && $this->container->get('user')->isUserLoggedIn();
+        $is_public_page = (defined('PSM_PUBLIC_PAGE') && PSM_PUBLIC_PAGE) || !$is_logged_in;
+        $twig->addGlobal('is_logged_in', $is_logged_in);
+        $twig->addGlobal('is_public_page', $is_public_page);
+        $twig->addGlobal('public_page_enabled', true);
         $twig->addGlobal('direction_current', psm_get_lang('locale_dir'));
         $twig->addGlobal('language_current', psm_get_lang('locale_tag'));
         $twig->addGlobal('language', psm_get_lang('locale')[1]);

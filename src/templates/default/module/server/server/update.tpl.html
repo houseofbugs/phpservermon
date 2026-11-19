@@ -117,6 +117,7 @@
 		<div class="card-header"><i class="bi bi-bell"></i>{{ label_fieldset_monitoring }}</div>
 		<div class="card-body pt-1">
 			{{ macro.input_select_monitoring("active", "active", label_monitoring, edit_active_selected, label_yes, label_no) }}
+			{{ macro.input_select_monitoring("public", "public", label_public, edit_public_selected|default('no'), label_yes, label_no) }}
 			{{ macro.input_select_monitoring("email", "email", label_send_email, edit_email_selected, label_yes, label_no, warning_email, label_warning_email) }}
 			<div class="pt-3">
 				<div class="d-flex justify-content-between align-items-center">

@@ -61,6 +61,10 @@
 					<span class="text-body"><i class="bi bi-eye me-2 text-muted"></i>{{ label_monitoring }}</span>
 					{% if active|lower == 'yes' %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}
 				</li>
+				<li class="{{ public|lower == 'yes' ? 'on' : 'off' }}">
+					<span class="text-body"><i class="bi bi-globe2 me-2 text-muted"></i>{{ label_public }}</span>
+					{% if public|lower == 'yes' %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}
+				</li>
 				<li class="{{ email|lower == 'yes' and email_enabled ? 'on' : 'off' }}">
 					<span class="text-body"><i class="bi bi-envelope me-2 text-muted"></i>{{ label_email }}</span>
 					{% if email|lower == 'yes' and email_enabled %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}

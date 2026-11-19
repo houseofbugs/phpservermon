@@ -50,6 +50,10 @@ class LoginController extends AbstractController
 
     protected function executeLogin()
     {
+        if ($this->getUser()->isUserLoggedIn()) {
+            header('Location: ' . psm_build_url());
+            die();
+        }
         if (isset($_POST['user_name']) && isset($_POST['user_password'])) {
             $rememberme = (isset($_POST['user_rememberme'])) ? true : false;
             $result = $this->getUser()->loginWithPostData(
@@ -60,10 +64,10 @@ class LoginController extends AbstractController
 
             if ($result) {
                 // success login, redirect
-                header('Location: ' .
-                    psm_build_url(
-                        empty($_SERVER["QUERY_STRING"]) ? null : $_SERVER["QUERY_STRING"]
-                    ));
+                $target = (empty($_SERVER["QUERY_STRING"]) || psm_GET('mod') === 'user_login')
+                    ? null
+                    : $_SERVER["QUERY_STRING"];
+                header('Location: ' . psm_build_url($target));
                 die();
             } else {
                 $this->addMessage(psm_get_lang('login', 'error_login_incorrect'), 'error');

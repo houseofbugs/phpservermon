@@ -41,6 +41,7 @@ class StatusController extends AbstractServerController
     {
         parent::__construct($db, $twig);
 
+        $this->setMinUserLevelRequired(PSM_USER_ANONYMOUS);
         $this->setCSRFKey('status');
         $this->setActions(array('index', 'saveLayout'), 'index');
     }
@@ -194,7 +195,9 @@ class StatusController extends AbstractServerController
     {
         if ($this->isXHR()) {
             $layout = psm_POST('layout', 0);
-            $this->getUser()->setUserPref('status_layout', $layout);
+            if ($this->getUser()->isUserLoggedIn()) {
+                $this->getUser()->setUserPref('status_layout', $layout);
+            }
 
             $response = new \Symfony\Component\HttpFoundation\JsonResponse();
             $response->setData(array(

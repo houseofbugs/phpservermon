@@ -16,12 +16,13 @@
 						<th scope="col">{{ label_rtime }}</th>
 						<th scope="col">{{ label_last_online }}</th>
 						<th scope="col" class="d-none d-xxl-table-cell">{{ label_last_offline }}</th>
+						<th scope="col">Public</th>
 						<th scope="col">{{ label_monitoring }}</th>
 						{% if user_level == 10 %}<th scope="col" class="text-end"><span class="visually-hidden">{{ label_action }}</span></th>{% endif %}
 					</tr>
 				</thead>
 				<tbody>
-					<tr class="no-result"><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching monitors</td></tr>
+					<tr class="no-result"><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching monitors</td></tr>
 					{% for server in servers %}
 					<tr class="clickable" data-href="{{ server.url_view|raw }}">
 						<th scope="row">
@@ -35,6 +36,21 @@
 						<td class="tabular">{{ (server.rtime * 1000)|round }} ms</td>
 						<td class="text-muted">{{ server.last_online }}</td>
 						<td class="text-muted d-none d-xxl-table-cell">{{ server.last_offline }}</td>
+						<td>
+							{% if user_level == 10 %}
+								{% if server.public|lower == 'yes' %}
+								<a href="{{ server.url_toggle_public|raw }}" class="chip text-success border-success-subtle" title="Visible on public status page — click to hide"><i class="bi bi-globe2"></i>{{ label_public_badge }}</a>
+								{% else %}
+								<a href="{{ server.url_toggle_public|raw }}" class="chip text-muted" title="Hidden from public status page — click to show"><i class="bi bi-eye-slash"></i>{{ label_private_badge }}</a>
+								{% endif %}
+							{% else %}
+								{% if server.public|lower == 'yes' %}
+								<span class="chip text-success border-success-subtle"><i class="bi bi-globe2"></i>{{ label_public_badge }}</span>
+								{% else %}
+								<span class="chip text-muted"><i class="bi bi-eye-slash"></i>{{ label_private_badge }}</span>
+								{% endif %}
+							{% endif %}
+						</td>
 						<td>
 							<div class="d-flex gap-2 text-muted fs-6">
 								{% if server.active|lower == 'yes' %}<i class="bi bi-eye text-body" title="{{ server.active_title }}"></i>{% else %}<i class="bi bi-eye-slash" title="{{ server.active_title }}"></i>{% endif %}

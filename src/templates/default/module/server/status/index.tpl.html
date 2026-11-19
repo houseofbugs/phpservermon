@@ -33,12 +33,21 @@
 	</div>
 
 	{% if kpi.total == 0 %}
+	{% if is_public_page %}
+	<div class="card empty-state">
+		<i class="bi bi-activity"></i>
+		<h5 class="text-body">No public services</h5>
+		<p>No monitors are currently published to the public status page.</p>
+		{% if not is_logged_in %}<div><a class="btn btn-primary" href="index.php?mod=user_login"><i class="bi bi-box-arrow-in-right"></i>Login</a></div>{% endif %}
+	</div>
+	{% else %}
 	<div class="card empty-state">
 		<i class="bi bi-activity"></i>
 		<h5 class="text-body">{{ label_none }}</h5>
 		<p>Add your first website, service or host to start monitoring.</p>
-		{% if not is_public_page %}<div><a class="btn btn-primary" href="{{ url_save|raw }}"><i class="bi bi-plus-lg"></i>{{ label_add_server }}</a></div>{% endif %}
+		<div><a class="btn btn-primary" href="{{ url_save|raw }}"><i class="bi bi-plus-lg"></i>{{ label_add_server }}</a></div>
 	</div>
+	{% endif %}
 	{% else %}
 
 	<div id="flow-layout" {% if layout %}hidden{% endif %}>

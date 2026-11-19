@@ -53,7 +53,7 @@ class Formatter
         if ($up) {
             $parts[] = $up . ' recovered';
         }
-        return PSM_BRAND_NAME . ': ' . implode(', ', $parts);
+        return psm_site_title() . ': ' . implode(', ', $parts);
     }
 
     public static function eventLine(array $e)
@@ -91,7 +91,7 @@ class Formatter
         list($down, $up) = self::counts($events);
         $payload = array(
             'event' => 'monitor.status_changed',
-            'source' => PSM_BRAND_NAME,
+            'source' => psm_site_title(),
             'version' => PSM_VERSION,
             'sent_at' => gmdate('c'),
             'summary' => array('down' => $down, 'up' => $up, 'title' => self::summaryTitle($events)),
@@ -111,7 +111,7 @@ class Formatter
             }, $events),
         );
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $headers = array('Content-Type: application/json', 'User-Agent: ' . PSM_BRAND_NAME . '/' . PSM_VERSION);
+        $headers = array('Content-Type: application/json', 'User-Agent: ' . psm_site_title() . '/' . PSM_VERSION);
         foreach (preg_split('/\r\n|\r|\n/', (string) ($s['headers'] ?? '')) as $line) {
             $line = trim($line);
             if ($line !== '' && strpos($line, ':') > 0) {
@@ -151,7 +151,7 @@ class Formatter
                     'color' => $e['status'] === 'down' ? self::COLOR_DOWN : self::COLOR_UP,
                     'fields' => $fields,
                     'timestamp' => gmdate('c', strtotime($e['date'])),
-                    'footer' => array('text' => PSM_BRAND_NAME),
+                    'footer' => array('text' => psm_site_title()),
                 );
                 if ($e['url'] !== '' && preg_match('#^https?://#', $e['url'])) {
                     $embed['url'] = $e['url'];
@@ -168,11 +168,11 @@ class Formatter
                 'description' => self::trunc(implode("\n", $lines), 4000),
                 'color' => $down ? self::COLOR_DOWN : self::COLOR_UP,
                 'timestamp' => gmdate('c'),
-                'footer' => array('text' => PSM_BRAND_NAME),
+                'footer' => array('text' => psm_site_title()),
             );
         }
         $payload = array(
-            'username' => !empty($s['username']) ? $s['username'] : PSM_BRAND_NAME,
+            'username' => !empty($s['username']) ? $s['username'] : psm_site_title(),
             'embeds' => $embeds,
             'allowed_mentions' => array('parse' => array('everyone', 'roles', 'users')),
         );
@@ -239,7 +239,7 @@ class Formatter
         $open = count($events) === 1 ? $events[0]['url'] : psm_dashboard_url();
         if ($open !== '' && preg_match('#^https?://#', $open)) {
             $card['actions'] = array(
-                array('type' => 'Action.OpenUrl', 'title' => 'Open in ' . PSM_BRAND_NAME, 'url' => $open),
+                array('type' => 'Action.OpenUrl', 'title' => 'Open in ' . psm_site_title(), 'url' => $open),
             );
         }
         $head = self::summaryTitle($events);

@@ -49,11 +49,12 @@ class EmailRenderer
                 . ($ev['url'] !== '' ? "\n  " . $ev['url'] : '') . "\n";
         }
 
+        $siteTitle = psm_site_title();
         $dashboard = psm_dashboard_url();
         $button = $dashboard !== ''
             ? '<tr><td style="padding:20px;border-top:1px solid #e4e4e7;"><a href="' . $e($dashboard) . '" '
                 . 'style="display:inline-block;background:#0891b2;color:#fff;font:600 14px Inter,Segoe UI,Arial,sans-serif;'
-                . 'padding:10px 18px;border-radius:8px;text-decoration:none;">Open ' . $e(PSM_BRAND_NAME) . '</a></td></tr>'
+                . 'padding:10px 18px;border-radius:8px;text-decoration:none;">Open ' . $e($siteTitle) . '</a></td></tr>'
             : '';
         if ($dashboard !== '') {
             $text .= "\nDashboard: " . $dashboard . "\n";
@@ -67,13 +68,13 @@ class EmailRenderer
             . '<tr><td style="height:4px;background:' . $accent . ';font-size:0;line-height:0;">&nbsp;</td></tr>'
             . '<tr><td style="padding:20px 20px 6px;font:700 13px Inter,Segoe UI,Arial,sans-serif;color:#0891b2;letter-spacing:.02em;">'
             . '<span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:#0891b2;color:#fff;text-align:center;line-height:22px;margin-right:6px;">∿</span>'
-            . $e(PSM_BRAND_NAME) . '</td></tr>'
+            . $e($siteTitle) . '</td></tr>'
             . '<tr><td style="padding:4px 20px 16px;font:700 20px/1.3 Inter,Segoe UI,Arial,sans-serif;color:#18181b;">'
             . $e(Formatter::summaryTitle($events)) . '</td></tr>'
             . $rows . $button
             . '</table>'
             . '<p style="font:12px Inter,Segoe UI,Arial,sans-serif;color:#a1a1aa;margin:16px 0 0;">Sent by '
-            . $e(PSM_BRAND_NAME) . ' · ' . $e(date('Y-m-d H:i:s T')) . '</p>'
+            . $e($siteTitle) . ' · ' . $e(date('Y-m-d H:i:s T')) . '</p>'
             . '</td></tr></table></body></html>';
 
         return array($subject, $html, $text);

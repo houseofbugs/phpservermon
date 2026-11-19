@@ -36,6 +36,17 @@ abstract class AbstractServerController extends AbstractController
 {
 
     /**
+     * Whether the current view should render the public-facing status panel (public servers only).
+     * @return bool
+     */
+    public function isPublicPanel()
+    {
+        return (defined('PSM_PUBLIC_PAGE') && PSM_PUBLIC_PAGE)
+            || !$this->getUser()->isUserLoggedIn()
+            || $this->getUser()->getUserLevel() == PSM_USER_ANONYMOUS;
+    }
+
+    /**
      * Get all servers for the current user
      * @param Countable|array|\PDOStatement $server_id (int) if true only that server will be retrieved.
      * @return array
@@ -43,9 +54,12 @@ abstract class AbstractServerController extends AbstractController
     public function getServers($server_id = null)
     {
         $sql_join = '';
-        $sql_where = '';
+        $where = array();
 
-        if ($this->getUser()->getUserLevel() > PSM_USER_ADMIN) {
+        if ($this->isPublicPanel()) {
+            $where[] = "`s`.`public`='yes'";
+            $where[] = "`s`.`active`='yes'";
+        } elseif ($this->getUser()->getUserLevel() > PSM_USER_ADMIN) {
             // restrict by user_id
             $sql_join = "JOIN `" . PSM_DB_PREFIX . "users_servers` AS `us` ON (
 						`us`.`user_id`={$this->getUser()->getUserId()}
@@ -54,8 +68,9 @@ abstract class AbstractServerController extends AbstractController
         }
         if ($server_id !== null) {
             $server_id = intval($server_id);
-            $sql_where = "WHERE `s`.`server_id`={$server_id} ";
+            $where[] = "`s`.`server_id`={$server_id}";
         }
+        $sql_where = !empty($where) ? 'WHERE ' . implode(' AND ', $where) . ' ' : '';
 
         $sql = "SELECT
 					`s`.`server_id`,
@@ -79,6 +94,7 @@ abstract class AbstractServerController extends AbstractController
 					`s`.`last_offline`,
 					`s`.`last_offline_duration`,
 					`s`.`active`,
+					`s`.`public`,
 					`s`.`email`,
 					`s`.`warning_threshold`,
 					`s`.`warning_threshold_counter`,
@@ -148,6 +164,11 @@ abstract class AbstractServerController extends AbstractController
                 'id' => $server['server_id'],
             ));
         }
+        $server['url_toggle_public'] = psm_build_url(array(
+            'mod' => 'server',
+            'action' => 'togglePublic',
+            'id' => $server['server_id'],
+        ));
 
         return $server;
     }

@@ -728,6 +728,16 @@ namespace {
     }
 
 /**
+ * Configured site title, falling back to the default product brand name.
+ * @return string
+ */
+    function psm_site_title()
+    {
+        $title = trim((string) psm_get_conf('site_title', ''));
+        return $title !== '' ? $title : PSM_BRAND_NAME;
+    }
+
+/**
  * Absolute link to the dashboard ('' if unknown).
  * @return string
  */

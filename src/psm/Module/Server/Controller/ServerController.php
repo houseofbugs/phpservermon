@@ -50,12 +50,12 @@ class ServerController extends AbstractServerController
 
         $this->setCSRFKey('server');
         $this->setActions(array(
-            'index', 'edit', 'save', 'delete', 'view',
+            'index', 'edit', 'save', 'delete', 'view', 'togglePublic',
         ), 'index');
 
         // make sure only admins are allowed to edit/delete servers:
         $this->setMinUserLevelRequiredForAction(PSM_USER_ADMIN, array(
-            'delete', 'edit', 'save'
+            'delete', 'edit', 'save', 'togglePublic',
         ));
         $this->twig->addGlobal('subtitle', psm_get_lang('menu', 'server'));
     }
@@ -176,6 +176,9 @@ class ServerController extends AbstractServerController
                 // insert mode
                 $tpl_data['titlemode'] = psm_get_lang('system', 'insert');
                 $tpl_data['edit_value_warning_threshold'] = '1';
+                $tpl_data['edit_active_selected'] = 'yes';
+                $tpl_data['edit_public_selected'] = 'no';
+                $tpl_data['edit_email_selected'] = 'yes';
                 $user_idc_selected = array_map('intval', (array) psm_POST('user_id', array($this->getUser()->getUserId())));
                 $target_idc_selected = array();
                 foreach ($all_targets as $t) {
@@ -251,8 +254,9 @@ class ServerController extends AbstractServerController
                     sha1($edit_server['website_password']),
                 'edit_value_ssl_cert_expiry_days' => $edit_server['ssl_cert_expiry_days'],
                 'edit_type_selected_' . $edit_server['type'] => 'selected="selected"',
-                'edit_active_selected' => $edit_server['active'],
-                'edit_email_selected' => $edit_server['email'],
+                'edit_active_selected' => $edit_server['active'] ?? 'yes',
+                'edit_public_selected' => $edit_server['public'] ?? 'no',
+                'edit_email_selected' => $edit_server['email'] ?? 'yes',
             ));
         }
 
@@ -312,6 +316,7 @@ class ServerController extends AbstractServerController
             'warning_threshold' => intval(psm_POST('warning_threshold', 0)),
             'ssl_cert_expiry_days' => intval(psm_POST('ssl_cert_expiry_days', 1)),
             'active' => in_array(psm_POST('active'), array('yes', 'no')) ? psm_POST('active') : 'no',
+            'public' => in_array(psm_POST('public'), array('yes', 'no')) ? psm_POST('public') : 'no',
             'email' => in_array(psm_POST('email'), array('yes', 'no')) ? psm_POST('email') : 'no',
         );
         // make sure websites start with http://
@@ -417,6 +422,26 @@ class ServerController extends AbstractServerController
         } else {
             return $this->runAction('index');
         }
+    }
+
+    /**
+     * Toggle whether a monitor is visible on the public-facing status page.
+     */
+    protected function executeTogglePublic()
+    {
+        if ($this->server_id > 0) {
+            $server = $this->getServers($this->server_id);
+            if (!empty($server)) {
+                $next = (isset($server['public']) && $server['public'] === 'yes') ? 'no' : 'yes';
+                $this->db->save(
+                    PSM_DB_PREFIX . 'servers',
+                    array('public' => $next),
+                    array('server_id' => $this->server_id)
+                );
+                $this->addMessage(psm_get_lang('servers', 'updated'), 'success');
+            }
+        }
+        return $this->runAction('index');
     }
 
     /**
@@ -589,6 +614,10 @@ class ServerController extends AbstractServerController
             'label_last_error' => psm_get_lang('servers', 'last_error'),
             'label_last_error_output' => psm_get_lang('servers', 'last_error_output'),
             'label_monitoring' => psm_get_lang('servers', 'monitoring'),
+            'label_public' => psm_get_lang('servers', 'public'),
+            'label_public_description' => psm_get_lang('servers', 'public_description'),
+            'label_public_badge' => psm_get_lang('servers', 'public_badge'),
+            'label_private_badge' => psm_get_lang('servers', 'private_badge'),
             'label_email' => psm_get_lang('servers', 'email'),
             'label_send_email' => psm_get_lang('servers', 'send_email'),
             'label_users' => psm_get_lang('servers', 'users'),
