@@ -5,12 +5,15 @@ Changelog
 v4.0.0 (released November 19, 2026)
 -----------------------------------
 
-* Modernized backend for PHP 8.2–8.4 (Symfony 6.4, Twig 3.14, PHPMailer 6.9+, InnoDB/utf8mb4, ``IntlDateFormatter``, cross-platform ICMP ping).
-* Redesigned 2026 dark-first UI with Bootstrap 5.3, Bootstrap Icons, Chart.js 4, Tom Select, Inter font, 24h uptime strips, and 100% self-hosted assets (jQuery removed).
-* Overhauled notifications: added Targets (Discord, Microsoft Teams, Home Assistant, Generic Webhook) and branded HTML email; removed legacy SMS gateways, Pushover, Telegram, and Jabber.
-* Added public status panel when logged out with Login button, configurable Site title, per-monitor Public visibility toggle (default hidden), and per-monitor Check interval scheduling (1–1440 minutes).
-* Hardened security: ``install.php`` post-install 403 lock, ``.htaccess`` path lockdown, HttpOnly/SameSite/Secure cookies with per-install HMAC secret, per-IP login rate limiting, forgot-password anti-enumeration, GET/POST CSRF enforcement, CSP/security headers, and SSRF protection.
-* Regenerated matching SVG, PNG, and multi-size ICO favicons/app icons.
+* Modernized backend for PHP 8.2–8.4: updated Symfony (`^6.4`), Twig (`^3.14`), and PHPMailer (`^6.9`), standardized new tables on ``InnoDB`` / ``utf8mb4``, replaced deprecated ``strftime()`` with ``IntlDateFormatter`` (``psm_strftime()``), and added cross-platform ICMP ``ping`` support (Linux, macOS, Windows).
+* Redesigned 2026 dark-first UI (with light mode toggle): Bootstrap 5.3, Bootstrap Icons, Chart.js 4, Tom Select, Inter Variable font, sidebar navigation, KPI summary cards, 24-hour uptime strips, vanilla ES6 JS (jQuery removed), and 100% self-hosted frontend assets.
+* Regenerated matching `.brand-mark` SVG, PNG (`64x64`, `192x192`), and multi-resolution ICO (`16x16`, `32x32`, `48x48`) favicons and PWA manifest icons with cache-busting versioning.
+* Added configurable per-monitor **Check interval** (``check_interval``, ``1``–``1440`` minutes) in the monitor edit form, server list table, detail view, and ``UpdateManager::run()`` cron scheduler (immediately retrying offline monitors and warning confirmations, with manual UI updates running forced).
+* Added public-facing status panel for logged-out visitors with a **Login** button, ``public.php`` admin preview, configurable **Site title** under Config → General (``psm_site_title()``), and per-monitor **Public** visibility toggle (defaulting to hidden/``no``, migrating any legacy ``__PUBLIC__`` assignments automatically).
+* Overhauled notifications into the modular **Notification Targets** system (``targets`` / ``servers_targets``): **Discord**, **Microsoft Teams**, **Home Assistant**, and **Generic Webhook** plus responsive branded **HTML Email**; removed legacy SMS gateways, Pushover, Telegram, and Jabber.
+* Hardened application security: automatic ``install.php`` post-install ``403`` lock, ``.htaccess`` directory/file restrictions, ``HttpOnly``/``SameSite=Lax``/``Secure`` cookies with per-install HMAC secret and ``hash_equals()``, Cloudflare-aware per-IP login rate limiting, constant forgot-password responses to prevent user enumeration, GET/POST CSRF validation, SSRF private-IP guards on outbound target tests, and CSP/security headers.
+* Added comprehensive webserver deployment documentation (``README.md``) covering Apache, Nginx + PHP-FPM, MySQL/MariaDB, Cron, and v3.x upgrades with full upstream attribution to ``phpservermon/phpservermon``.
+* See https://github.com/houseofbugs/phpservermon/compare/v3.5.2...v4.0.0
 
 v3.5.2 (released August 12, 2020)
 -----------------------------
