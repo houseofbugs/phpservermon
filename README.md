@@ -39,8 +39,9 @@ A modernized, security-hardened fork of **PHP Server Monitor** updated for **PHP
 - Vanilla ES6 frontend ([`app.js`](src/templates/default/static/js/app.js)) — **jQuery removed**.
 - Crisp matching header mark and generated favicon/PWA icon set (`favicon.svg`, `favicon.png`, `favicon.ico`, `phpservermon.png`).
 
-### Public Status Panel & Site Branding
+### Public Status Panel, Per-Monitor Intervals & Branding
 - **Configurable Site Title**: Set your status page title under **Config → General → Site title** (`psm_site_title()`).
+- **Per-Monitor Check Intervals**: Set each monitor's **Check interval** (`1`–`1440` minutes) under **Servers → Edit → Settings** (`check_interval`). When cron runs every minute (`* * * * *`), each healthy monitor is polled only when its interval has elapsed (offline monitors and warning retries check on every cron tick for fast recovery detection).
 - **Public Status Panel**: Logged-out visitors automatically see a clean public status view with a **Login** button; logged-in admins can preview the public view at `public.php`.
 - **Per-Monitor Public Visibility**: Every monitor has a **Public** toggle (`yes` / `no`, **defaulting to Hidden / `no`** so private/internal monitors are never exposed unintentionally).
 
@@ -203,7 +204,7 @@ server {
 
 ### 5. Set Up the Monitoring Cron Job
 
-Schedule `cron/status.cron.php` via CLI cron (recommended — runs directly via PHP without exposing `/cron/` over HTTP):
+Schedule `cron/status.cron.php` via CLI cron (recommended — set to **every 1 minute** so per-monitor check intervals of `1`–`1440` minutes work accurately without exposing `/cron/` over HTTP):
 
 ```cron
 * * * * * /usr/bin/php /var/www/status/cron/status.cron.php --uri="https://status.example.com/" >/dev/null 2>&1
@@ -223,7 +224,7 @@ Available CLI options in [`cron/status.cron.php`](cron/status.cron.php):
 1. **Site Title & Settings**: Log in as admin → **Config → General** to set your **Site title**, language, auto-refresh interval, and log retention period (days).
 2. **Email / SMTP**: Configure SMTP host, port, encryption, and sender address under **Config → Email**.
 3. **Notification Targets**: Open **Targets** in the sidebar to add **Discord**, **Microsoft Teams**, **Home Assistant**, or **Generic Webhook** targets, test delivery, and assign targets per monitor (or click **Attach to all monitors**).
-4. **Public Status Panel**: In **Servers**, new monitors default to **Hidden (`no`)**. Toggle **Public** on any monitor you want displayed on the unauthenticated status page (`/` or `index.php` when logged out).
+4. **Public Status Panel & Check Intervals**: In **Servers**, new monitors default to **Hidden (`no`)** and a **1-minute** check interval. Toggle **Public** per monitor or edit each monitor's **Check interval** (minutes), **Warning threshold**, and **Timeout** under **Settings**.
 
 ---
 

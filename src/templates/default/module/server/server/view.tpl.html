@@ -20,6 +20,7 @@
 		<div><dt>{{ label_last_check }}</dt><dd>{{ last_check }}</dd></div>
 		<div><dt>{{ label_last_online }}</dt><dd>{{ last_online }}</dd></div>
 		<div><dt>{{ label_last_offline }}</dt><dd>{{ last_offline }} {% if last_offline_duration %}<span class="text-muted fw-normal">{{ last_offline_duration }}</span>{% endif %}</dd></div>
+		<div><dt>{{ label_check_interval }}</dt><dd>{{ check_interval|default(1) }} min</dd></div>
 		<div><dt>{{ label_warning_threshold }}</dt><dd>{{ warning_threshold }}</dd></div>
 		<div><dt>{{ label_timeout }}</dt><dd>{{ timeout }} s</dd></div>
 	</dl>

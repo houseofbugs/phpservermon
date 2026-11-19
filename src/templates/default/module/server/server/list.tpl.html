@@ -13,6 +13,7 @@
 						<th scope="col">{{ label_label }}</th>
 						<th scope="col" class="d-none d-md-table-cell">{{ label_domain }}</th>
 						<th scope="col">{{ label_type }}</th>
+						<th scope="col">Interval</th>
 						<th scope="col">{{ label_rtime }}</th>
 						<th scope="col">{{ label_last_online }}</th>
 						<th scope="col" class="d-none d-xxl-table-cell">{{ label_last_offline }}</th>
@@ -22,7 +23,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr class="no-result"><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching monitors</td></tr>
+					<tr class="no-result"><td colspan="10" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching monitors</td></tr>
 					{% for server in servers %}
 					<tr class="clickable" data-href="{{ server.url_view|raw }}">
 						<th scope="row">
@@ -33,6 +34,7 @@
 						</th>
 						<td class="text-muted text-truncate d-none d-md-table-cell" style="max-width: 220px;">{{ server.ip|striptags }}{% if server.port %}<span class="opacity-75">:{{ server.port }}</span>{% endif %}</td>
 						<td><span class="chip"><i class="bi bi-{{ type_icons[server.type]|default('hdd') }}"></i>{{ server.type }}</span></td>
+						<td><span class="chip"><i class="bi bi-arrow-repeat"></i>{{ server.check_interval|default(1) }}m</span></td>
 						<td class="tabular">{{ (server.rtime * 1000)|round }} ms</td>
 						<td class="text-muted">{{ server.last_online }}</td>
 						<td class="text-muted d-none d-xxl-table-cell">{{ server.last_offline }}</td>

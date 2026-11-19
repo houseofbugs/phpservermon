@@ -178,6 +178,8 @@ $sm_lang = array(
         'domain' => 'Domain/IP',
         'timeout' => 'Timeout',
         'timeout_description' => 'Number of seconds to wait for the server to respond.',
+        'check_interval' => 'Check interval',
+        'check_interval_description' => 'How often cron should check this monitor (in minutes). Set your server cron job to run every 1 minute (* * * * *).',
         'authentication_settings' => 'Authentication Settings',
         'optional' => 'Optional',
         'website_username' => 'Username',
@@ -282,6 +284,7 @@ $sm_lang = array(
         'error_server_ip_bad_website' => 'The website URL is not valid.',
         'error_server_type_invalid' => 'The selected server type is invalid.',
         'error_server_warning_threshold_invalid' => 'The warning threshold must be a valid integer greater than 0.',
+        'error_server_check_interval_invalid' => 'The check interval must be between 1 and 1440 minutes.',
         'error_server_ssl_cert_expiry_days' => 'The remaining days for SSL certificate validity must be a valid
  integer greater than or equal to 0.',
     ),
@@ -388,6 +391,7 @@ $sm_lang = array(
         'auto_refresh_description' => 'Auto-refresh servers page.<br><span class="small">Time in seconds, if 0 the
  page won\'t refresh.</span>',
         'seconds' => 'seconds',
+        'minutes' => 'minutes',
         'test' => 'Test',
         'test_email' => 'An email will be sent to the address specified in your user profile.',
         'test_sms' => 'An SMS will be sent to the phone number specified in your user profile.',

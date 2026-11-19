@@ -53,6 +53,8 @@ abstract class AbstractServerController extends AbstractController
      */
     public function getServers($server_id = null)
     {
+        (new \psm\Util\Install\Installer($this->db))->ensureCheckIntervalColumn();
+
         $sql_join = '';
         $where = array();
 
@@ -101,6 +103,7 @@ abstract class AbstractServerController extends AbstractController
                     `s`.`ssl_cert_expiry_days`,
                     `s`.`ssl_cert_expired_time`,
 					`s`.`timeout`,
+					`s`.`check_interval`,
 					`s`.`website_username`,
 					`s`.`website_password`,
 					`s`.`last_error`,
@@ -151,6 +154,8 @@ abstract class AbstractServerController extends AbstractController
         $server['error'] = htmlentities((string) ($server['error'] ?? ''), ENT_QUOTES, 'UTF-8');
         $server['type'] = psm_get_lang('servers', 'type_' . $server['type']);
         $server['timeout'] = ($server['timeout'] > 0) ? $server['timeout'] : PSM_CURL_TIMEOUT;
+        $server['check_interval'] = (isset($server['check_interval']) && (int) $server['check_interval'] > 0)
+            ? (int) $server['check_interval'] : 1;
 
         $server['last_error'] = htmlentities((string) ($server['last_error'] ?? ''), ENT_QUOTES, 'UTF-8');
         $server['last_error_output'] = htmlentities((string) ($server['last_error_output'] ?? ''), ENT_QUOTES, 'UTF-8');

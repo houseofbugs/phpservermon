@@ -176,6 +176,7 @@ class ServerController extends AbstractServerController
                 // insert mode
                 $tpl_data['titlemode'] = psm_get_lang('system', 'insert');
                 $tpl_data['edit_value_warning_threshold'] = '1';
+                $tpl_data['edit_value_check_interval'] = '1';
                 $tpl_data['edit_active_selected'] = 'yes';
                 $tpl_data['edit_public_selected'] = 'no';
                 $tpl_data['edit_email_selected'] = 'yes';
@@ -242,6 +243,7 @@ class ServerController extends AbstractServerController
                 'edit_value_request_method' => $edit_server['request_method'],
                 'edit_value_post_field' => $edit_server['post_field'],
                 'edit_value_timeout' => $edit_server['timeout'],
+                'edit_value_check_interval' => $edit_server['check_interval'] ?? 1,
                 'edit_value_pattern' => $edit_server['pattern'],
                 'edit_pattern_selected_' . $edit_server['pattern_online'] => 'selected="selected"',
                 'edit_redirect_check_selected_' . $edit_server['redirect_check'] => 'selected="selected"',
@@ -299,6 +301,8 @@ class ServerController extends AbstractServerController
             'label' => trim(strip_tags(psm_POST('label', ''))),
             'ip' => trim(strip_tags(psm_POST('ip', ''))),
             'timeout' => (isset($_POST['timeout']) && intval($_POST['timeout']) > 0) ? intval($_POST['timeout']) : 10,
+            'check_interval' => (isset($_POST['check_interval']) && intval($_POST['check_interval']) > 0)
+                ? intval($_POST['check_interval']) : 1,
             'website_username' => psm_POST('website_username'),
             'website_password' => $encrypted_password,
             'port' => intval(psm_POST('port', 0)),
@@ -357,6 +361,7 @@ class ServerController extends AbstractServerController
             $server_validator->type($clean['type']);
             $server_validator->ip($clean['ip'], $clean['type']);
             $server_validator->warningThreshold($clean['warning_threshold']);
+            $server_validator->checkInterval($clean['check_interval']);
             $server_validator->sslCertExpiryDays($clean['ssl_cert_expiry_days']);
         } catch (\InvalidArgumentException $ex) {
             $this->addMessage(psm_get_lang('servers', 'error_' . $ex->getMessage()), 'error');
@@ -571,6 +576,8 @@ class ServerController extends AbstractServerController
             'label_domain' => psm_get_lang('servers', 'domain'),
             'label_timeout' => psm_get_lang('servers', 'timeout'),
             'label_timeout_description' => psm_get_lang('servers', 'timeout_description'),
+            'label_check_interval' => psm_get_lang('servers', 'check_interval'),
+            'label_check_interval_description' => psm_get_lang('servers', 'check_interval_description'),
             'label_authentication_settings' => psm_get_lang('servers', 'authentication_settings'),
             'label_optional' => psm_get_lang('servers', 'optional'),
             'label_website_username' => psm_get_lang('servers', 'website_username'),
@@ -635,11 +642,13 @@ class ServerController extends AbstractServerController
             'label_no' => psm_get_lang('system', 'no'),
             'label_add_new' => psm_get_lang('system', 'add_new'),
             'label_seconds' => psm_get_lang('config', 'seconds'),
+            'label_minutes' => psm_get_lang('config', 'minutes'),
             'label_online' => psm_get_lang('servers', 'online'),
             'label_offline' => psm_get_lang('servers', 'offline'),
             'label_ok' => psm_get_lang('system', 'ok'),
             'label_bad' => psm_get_lang('system', 'bad'),
             'default_value_timeout' => PSM_CURL_TIMEOUT,
+            'default_value_check_interval' => 1,
             'label_settings' => psm_get_lang('system', 'settings'),
             'label_output' => psm_get_lang('servers', 'output'),
             'label_search' => psm_get_lang('system', 'search'),

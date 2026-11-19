@@ -50,12 +50,19 @@ class UpdateManager implements ContainerAwareInterface
      *
      * @param boolean $skip_perms if TRUE, no user permissions will be taken in account and all servers will be updated
      * @param string|null $status If all servers (null), or just `on` or `off` should be checked.
+     * @param bool|null $force When true, check all servers regardless of check_interval.
      */
-    public function run($skip_perms = false, $status = null)
+    public function run($skip_perms = false, $status = null, $force = null)
     {
+        if ($force === null) {
+            $force = !$skip_perms;
+        }
     	if (false === in_array($status, ['on', 'off'], true)) {
     		$status = null;
 	    }
+
+        $db = $this->container->get('db');
+        (new \psm\Util\Install\Installer($db))->ensureCheckIntervalColumn();
 
         // check if we need to restrict the servers to a certain user
         $sql_join = '';
@@ -69,24 +76,36 @@ class UpdateManager implements ContainerAwareInterface
         }
 
         $sql = "SELECT `s`.`server_id`,`s`.`ip`,`s`.`port`,`s`.`label`,`s`.`type`,`s`.`pattern`,`s`.`header_name`,
-            `s`.`header_value`,`s`.`status`,`s`.`active`,`s`.`email`
+            `s`.`header_value`,`s`.`status`,`s`.`active`,`s`.`email`,`s`.`check_interval`,`s`.`last_check`,
+            `s`.`warning_threshold_counter`
 				FROM `" . PSM_DB_PREFIX . "servers` AS `s`
 				{$sql_join}
 				WHERE `active`='yes' " . ($status !== null ? ' AND `status` = \'' . $status . '\'' : '');
 
-        $servers = $this->container->get('db')->query($sql);
+        $servers = $db->query($sql);
 
-        $updater = new Updater\StatusUpdater($this->container->get('db'));
-        $notifier = new Updater\StatusNotifier($this->container->get('db'));
+        $updater = new Updater\StatusUpdater($db);
+        $notifier = new Updater\StatusNotifier($db);
+        $now = time();
 
         foreach ($servers as $server) {
+            if (!$force && $server['status'] !== 'off' && (int) ($server['warning_threshold_counter'] ?? 0) === 0) {
+                $last_check = (string) ($server['last_check'] ?? '');
+                if ($last_check !== '' && $last_check !== '0000-00-00 00:00:00') {
+                    $interval_min = max(1, (int) ($server['check_interval'] ?? 1));
+                    $last_ts = strtotime($last_check);
+                    if ($last_ts !== false && ($now - $last_ts) < ($interval_min * 60 - 15)) {
+                        continue;
+                    }
+                }
+            }
+
             $status_old = ($server['status'] == 'on') ? true : false;
-            $status_new = $updater->
-            update($server['server_id']);
+            $status_new = $updater->update($server['server_id']);
             // notify the nerds if applicable
             $notifier->notify($server['server_id'], $status_old, $status_new);
             // clean-up time!! archive all records
-            $archive = new ArchiveManager($this->container->get('db'));
+            $archive = new ArchiveManager($db);
             $archive->archive($server['server_id']);
             $archive->cleanup($server['server_id']);
         }

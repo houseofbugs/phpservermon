@@ -156,6 +156,20 @@ class ServerValidator
     }
 
     /**
+     * Check interval in minutes
+     * @param int $value
+     * @return boolean
+     * @throws \InvalidArgumentException
+     */
+    public function checkInterval($value)
+    {
+        if (!is_numeric($value) || intval($value) < 1 || intval($value) > 1440) {
+            throw new \InvalidArgumentException('server_check_interval_invalid');
+        }
+        return true;
+    }
+
+    /**
      * Check SSL expiry days
      * @param int $value
      * @return boolean

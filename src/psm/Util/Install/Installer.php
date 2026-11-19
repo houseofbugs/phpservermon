@@ -252,6 +252,7 @@ class Installer
                 `ssl_cert_expiry_days` mediumint(1) unsigned NOT NULL DEFAULT '0',
                 `ssl_cert_expired_time` varchar(255) NULL,
                 `timeout` smallint(1) unsigned NULL DEFAULT NULL,
+                `check_interval` smallint(5) unsigned NOT NULL DEFAULT '1',
                 `website_username` varchar(255) DEFAULT NULL,
                 `website_password` varchar(255) DEFAULT NULL,
                 `last_error` varchar(255) DEFAULT NULL,
@@ -405,7 +406,26 @@ class Installer
                 'log_sms', 'log_pushover', 'log_telegram', 'log_jabber', 'log_jdiscord');";
         $this->execSQL($queries);
         $this->ensurePublicColumn();
+        $this->ensureCheckIntervalColumn();
         $this->log('SMS, Pushover, Telegram and Jabber channels removed. Configure Notification targets instead.');
+    }
+
+    /**
+     * Ensure `servers.check_interval` exists (default 1 minute) for per-monitor check intervals.
+     */
+    public function ensureCheckIntervalColumn()
+    {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+        $checked = true;
+        if (!$this->columnExists('servers', 'check_interval')) {
+            $this->execSQL(array(
+                "ALTER TABLE `" . PSM_DB_PREFIX . "servers`
+                    ADD COLUMN `check_interval` smallint(5) unsigned NOT NULL DEFAULT '1' AFTER `timeout`;"
+            ));
+        }
     }
 
     /**
