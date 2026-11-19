@@ -65,7 +65,13 @@ class UptimeArchiver implements ArchiverInterface
      */
     public function archive($server_id = null)
     {
-        $latest_date = new \DateTime('-1 week 0:0:0');
+        if (defined('PSM_UPTIME_ARCHIVE') && PSM_UPTIME_ARCHIVE === 'quarterly') {
+            $latest_date = new \DateTime('-3 month 0:0:0');
+        } elseif (defined('PSM_UPTIME_ARCHIVE') && PSM_UPTIME_ARCHIVE === 'monthly') {
+            $latest_date = new \DateTime('-1 month 0:0:0');
+        } else {
+            $latest_date = new \DateTime('-1 week 0:0:0');
+        }
 
         // Lock tables to prevent simultaneous archiving (by other sessions or the cron job)
         try {

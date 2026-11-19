@@ -33,6 +33,7 @@
 <body>
 {% set alert_icons = { 'danger': 'x-octagon', 'success': 'check-circle', 'warning': 'exclamation-triangle', 'info': 'info-circle', 'primary': 'info-circle' } %}
 {% if nav is defined and nav %}
+	{% if not is_public_page %}
 	<aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-label="Main navigation">
 		<div class="offcanvas-body">
 			<a class="brand" href="index.php">
@@ -53,18 +54,29 @@
 			</div>
 		</div>
 	</aside>
+	{% endif %}
 
-	<div class="app-main">
-		{% if update_available %}<div class="update-banner"><i class="bi bi-stars me-1"></i>{{ update_available|raw }}</div>{% endif %}
+	<div class="app-main" {% if is_public_page %}style="margin-left:0"{% endif %}>
+		{% if not is_public_page and update_available %}<div class="update-banner"><i class="bi bi-stars me-1"></i>{{ update_available|raw }}</div>{% endif %}
 		<header class="app-topbar">
+			{% if is_public_page %}
+			<a class="brand border-0 p-0 me-2" href="public.php">{{ layout.brand_mark() }}<span class="brand-text">{{ brand_name }}</span></a>
+			<span class="chip"><span class="dot is-up"></span>Public Status</span>
+			{% else %}
 			<button class="icon-btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Open menu"><i class="bi bi-list"></i></button>
 			<button class="icon-btn d-none d-lg-inline-grid" type="button" onclick="dfsToggleSidebar()" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="bi bi-layout-sidebar"></i></button>
 			<h1 class="page-title text-truncate">{{ subtitle|default(title) }}</h1>
+			{% endif %}
 			<div class="ms-auto d-flex align-items-center gap-2">
+				{% if public_page_enabled and not is_public_page %}
+				<a class="btn btn-ghost btn-sm" href="public.php" target="_blank" rel="noopener" title="Open Public Status Page"><i class="bi bi-box-arrow-up-right"></i><span class="d-none d-md-inline">Public Page</span></a>
+				{% endif %}
 				<button class="icon-btn" type="button" onclick="dfsToggleTheme()" aria-label="Toggle theme" title="Toggle light / dark">
 					<i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
 				</button>
-				{% if nav.user_name is defined %}
+				{% if is_public_page %}
+				<a class="btn btn-ghost btn-sm" href="index.php"><i class="bi bi-box-arrow-in-right"></i><span>Sign in</span></a>
+				{% elseif nav.user_name is defined %}
 				<div class="dropdown">
 					<a href="#" class="user-btn" data-bs-toggle="dropdown" aria-expanded="false">
 						<span class="avatar">{{ nav.user_initials }}</span>

@@ -107,6 +107,18 @@ namespace {
         }
     }
 
+    if (!defined('PSM_PUBLIC')) {
+        define('PSM_PUBLIC', false);
+    }
+
+    if (!defined('PSM_PUBLIC_PAGE')) {
+        define('PSM_PUBLIC_PAGE', false);
+    }
+
+    if (!defined('PSM_UPTIME_ARCHIVE')) {
+        define('PSM_UPTIME_ARCHIVE', 'monthly');
+    }
+
     $lang = psm_get_conf('language', 'en_US');
     psm_load_lang($lang);
 }

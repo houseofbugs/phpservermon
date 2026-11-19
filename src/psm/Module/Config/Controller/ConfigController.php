@@ -53,6 +53,7 @@ class ConfigController extends AbstractController
      * @var array $fields
      */
     protected $fields = array(
+        'site_title',
         'proxy_url',
         'proxy_user',
         'proxy_password',
@@ -160,6 +161,9 @@ class ConfigController extends AbstractController
         }
         foreach ($this->fields as $input_key) {
             $tpl_data[$input_key] = (isset($config[$input_key])) ? $config[$input_key] : '';
+        }
+        if (empty($tpl_data['site_title'])) {
+            $tpl_data['site_title'] = PSM_BRAND_NAME;
         }
         // encrypted fields
         foreach ($this->encryptedFields as $encryptedField) {
@@ -279,6 +283,7 @@ class ConfigController extends AbstractController
             'label_settings_log' => psm_get_lang('config', 'settings_log'),
             'label_settings_proxy' => psm_get_lang('config', 'settings_proxy'),
             'label_general' => psm_get_lang('config', 'general'),
+            'label_site_title' => psm_get_lang('config', 'site_title'),
             'label_language' => psm_get_lang('config', 'language'),
             'label_show_update' => psm_get_lang('config', 'show_update'),
             'label_password_encrypt_key' => psm_get_lang('config', 'password_encrypt_key'),

@@ -242,8 +242,11 @@ class Formatter
                 array('type' => 'Action.OpenUrl', 'title' => 'Open in ' . PSM_BRAND_NAME, 'url' => $open),
             );
         }
+        $head = self::summaryTitle($events);
         $payload = array(
             'type' => 'message',
+            'summary' => $head,
+            'text' => $head,
             'attachments' => array(
                 array('contentType' => 'application/vnd.microsoft.card.adaptive', 'contentUrl' => null, 'content' => $card),
             ),

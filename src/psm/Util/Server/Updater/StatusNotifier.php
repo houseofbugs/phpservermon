@@ -241,7 +241,9 @@ class StatusNotifier
             JOIN `' . PSM_DB_PREFIX . 'users_servers` AS `us` ON (
                 `us`.`user_id` = `u`.`user_id`
                 AND `us`.`server_id` = ' . (int) $server_id . '
-            )');
+            )
+            WHERE `u`.`level` < ' . (int) PSM_USER_ANONYMOUS . '
+                AND `u`.`user_name` != \'__PUBLIC__\'');
         return is_array($users) ? $users : array();
     }
 }

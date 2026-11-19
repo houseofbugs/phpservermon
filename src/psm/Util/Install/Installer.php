@@ -136,10 +136,12 @@ class Installer
             `ip`, `port`, `label`, `type`, `pattern`, `pattern_online`, `redirect_check`,
             `status`, `rtime`, `active`, `email`)
             VALUES ('http://sourceforge.net/index.php', 80, 'SourceForge', 'website', '',
-                'yes', 'bad', 'on', '0.0000000', 'yes', 'yes', 'yes', 'yes', 'yes', 'yes'),
+                'yes', 'bad', 'on', '0.0000000', 'yes', 'yes'),
                 ('smtp.gmail.com', 465, 'Gmail SMTP', 'service', '',
                 'yes', 'bad','on', '0', 'yes', 'yes')";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "users_servers` (`user_id`,`server_id`) VALUES (1, 1), (1, 2);";
+        $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "users` (`user_name`, `password`, `level`, `name`, `email`)
+            VALUES ('__PUBLIC__', '', 30, 'Public page', 'publicpage@psm.psm');";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "config` (`key`, `value`) VALUE
                     ('language', 'en_US'),
                     ('proxy', '0'),
@@ -188,7 +190,7 @@ class Installer
                 `user_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
                 `user_name` varchar(64) NOT NULL COMMENT 'user''s name, unique',
                 `password` varchar(255) NOT NULL COMMENT 'user''s password in salted and hashed format',
-                `password_reset_hash` char(40) DEFAULT NULL COMMENT 'user''s password reset code',
+                `password_reset_hash` varchar(64) DEFAULT NULL COMMENT 'user''s password reset code',
                 `password_reset_timestamp` bigint(20) DEFAULT NULL COMMENT 'timestamp of the password reset request',
                 `rememberme_token` varchar(64) DEFAULT NULL COMMENT 'user''s remember-me cookie token',
                 `level` tinyint(2) unsigned NOT NULL DEFAULT '20',
@@ -368,34 +370,145 @@ class Installer
     /**
      * Upgrade for DFS Monitor 4.0.0:
      * - remove SMS, Pushover, Telegram and Jabber channels
+     * - migrate 3.6.0.beta2 user webhook_url / discord targets into psm_targets
      * - add notification targets (webhook, Discord, Teams, Home Assistant)
      */
     protected function upgrade400()
     {
+        $this->execSQL(array_values($this->getTargetTables()));
+        $this->migrateLegacyTargets();
+
         $queries = array();
-        foreach ($this->getTargetTables() as $sql) {
-            $queries[] = $sql;
-        }
         $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "config` (`key`, `value`) VALUES ('combine_notifications', '0');";
         $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "log` MODIFY `type` varchar(32) NOT NULL;";
         $queries[] = "DELETE FROM `" . PSM_DB_PREFIX . "log` WHERE `type` IN ('sms','pushover','telegram','jabber');";
         $queries[] = "DELETE `lu` FROM `" . PSM_DB_PREFIX . "log_users` AS `lu` LEFT JOIN `" . PSM_DB_PREFIX
             . "log` AS `l` ON `l`.`log_id` = `lu`.`log_id` WHERE `l`.`log_id` IS NULL;";
-        foreach (array('sms', 'pushover', 'telegram', 'jabber') as $column) {
+        $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "users`
+            CHANGE `password_reset_hash` `password_reset_hash` varchar(64) DEFAULT NULL COMMENT 'user''s password reset code';";
+        $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "users` (`user_name`, `password`, `level`, `name`, `email`)
+            VALUES ('__PUBLIC__', '', 30, 'Public page', 'publicpage@psm.psm');";
+        foreach (array('sms', 'pushover', 'telegram', 'jabber', 'discord', 'webhook') as $column) {
             if ($this->columnExists('servers', $column)) {
                 $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "servers` DROP COLUMN `{$column}`;";
             }
         }
-        foreach (array('mobile', 'pushover_key', 'pushover_device', 'telegram_id', 'jabber') as $column) {
+        foreach (
+            array('mobile', 'pushover_key', 'pushover_device', 'telegram_id', 'jabber', 'discord', 'webhook_url', 'webhook_json')
+            as $column
+        ) {
             if ($this->columnExists('users', $column)) {
                 $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "users` DROP COLUMN `{$column}`;";
             }
         }
         $queries[] = "DELETE FROM `" . PSM_DB_PREFIX . "config` WHERE `key` LIKE 'sms\\_%' OR `key` LIKE 'pushover\\_%'
             OR `key` LIKE 'telegram\\_%' OR `key` LIKE 'jabber\\_%'
-            OR `key` IN ('log_sms', 'log_pushover', 'log_telegram', 'log_jabber');";
+            OR `key` IN ('discord_status', 'webhook_status', 'webhook_url', 'webhook_json',
+                'log_sms', 'log_pushover', 'log_telegram', 'log_jabber', 'log_jdiscord');";
         $this->execSQL($queries);
         $this->log('SMS, Pushover, Telegram and Jabber channels removed. Configure Notification targets instead.');
+    }
+
+    /**
+     * Migrate legacy per-user webhook_url / discord URLs from 3.6.0.beta2 into targets.
+     */
+    protected function migrateLegacyTargets()
+    {
+        $existingUrls = array();
+        foreach ((array) $this->db->query('SELECT `settings` FROM `' . PSM_DB_PREFIX . 'targets`') as $trow) {
+            $decoded = json_decode((string) $trow['settings'], true);
+            if (is_array($decoded) && !empty($decoded['url'])) {
+                $existingUrls[trim((string) $decoded['url'])] = true;
+            }
+        }
+
+        if ($this->columnExists('users', 'webhook_url')) {
+            $rows = $this->db->query(
+                "SELECT `user_id`, `name`, `webhook_url` FROM `" . PSM_DB_PREFIX . "users`
+                    WHERE `webhook_url` IS NOT NULL AND TRIM(`webhook_url`) != ''"
+            );
+            foreach ((array) $rows as $row) {
+                $url = trim((string) $row['webhook_url']);
+                if ($url === '' || isset($existingUrls[$url])) {
+                    continue;
+                }
+                $isTeams = stripos($url, '.webhook.office.com/') !== false
+                    || stripos($url, '.logic.azure.com/') !== false
+                    || stripos($url, '.api.powerplatform.com/') !== false;
+                if ($isTeams) {
+                    $this->createMigratedTarget(
+                        (int) $row['user_id'],
+                        'Microsoft Teams',
+                        'teams',
+                        array('url' => $url)
+                    );
+                } else {
+                    $this->createMigratedTarget(
+                        (int) $row['user_id'],
+                        'Webhook (' . $row['name'] . ')',
+                        'webhook',
+                        array('url' => $url, 'headers' => '', 'secret' => '', 'verify_tls' => '1')
+                    );
+                }
+                $existingUrls[$url] = true;
+            }
+        }
+
+        if ($this->columnExists('users', 'discord')) {
+            $rows = $this->db->query(
+                "SELECT `user_id`, `name`, `discord` FROM `" . PSM_DB_PREFIX . "users`
+                    WHERE `discord` IS NOT NULL AND TRIM(`discord`) != ''"
+            );
+            foreach ((array) $rows as $row) {
+                $url = trim((string) $row['discord']);
+                if ($url === '' || isset($existingUrls[$url])) {
+                    continue;
+                }
+                $this->createMigratedTarget(
+                    (int) $row['user_id'],
+                    'Discord (' . $row['name'] . ')',
+                    'discord',
+                    array('url' => $url, 'username' => '', 'mention' => '')
+                );
+                $existingUrls[$url] = true;
+            }
+        }
+    }
+
+    /**
+     * Insert a migrated target and attach it to the owning user's monitors (or all monitors).
+     * @param int $user_id
+     * @param string $name
+     * @param string $type
+     * @param array $settings
+     */
+    protected function createMigratedTarget($user_id, $name, $type, array $settings)
+    {
+        $target_id = (int) $this->db->save(PSM_DB_PREFIX . 'targets', array(
+            'name' => mb_substr($name, 0, 100),
+            'type' => $type,
+            'settings' => json_encode($settings, JSON_UNESCAPED_SLASHES),
+            'is_default' => 1,
+            'active' => 1,
+        ));
+        if ($target_id <= 0) {
+            return;
+        }
+        $servers = $this->db->execute(
+            'SELECT `server_id` FROM `' . PSM_DB_PREFIX . 'users_servers` WHERE `user_id` = :uid',
+            array('uid' => (int) $user_id)
+        );
+        if (empty($servers)) {
+            $servers = $this->db->query('SELECT `server_id` FROM `' . PSM_DB_PREFIX . 'servers`');
+        }
+        foreach ((array) $servers as $srv) {
+            $this->db->execute(
+                'INSERT IGNORE INTO `' . PSM_DB_PREFIX . 'servers_targets` (`server_id`, `target_id`) VALUES (:sid, :tid)',
+                array('sid' => (int) $srv['server_id'], 'tid' => $target_id),
+                false
+            );
+        }
+        $this->log('Migrated notification target: ' . $name . ' (' . $type . ').');
     }
 
     /**

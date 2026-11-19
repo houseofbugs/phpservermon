@@ -150,6 +150,14 @@ abstract class AbstractController implements ControllerInterface
     {
         $this->db = $db;
         $this->twig = $twig;
+
+        $is_public_page = defined('PSM_PUBLIC') && PSM_PUBLIC && defined('PSM_PUBLIC_PAGE') && PSM_PUBLIC_PAGE;
+        $public_page_enabled = defined('PSM_PUBLIC') && PSM_PUBLIC;
+        if ($is_public_page) {
+            $this->user_level_required = PSM_USER_ANONYMOUS;
+        }
+        $this->twig->addGlobal('is_public_page', $is_public_page);
+        $this->twig->addGlobal('public_page_enabled', $public_page_enabled);
     }
 
     /**
@@ -216,9 +224,11 @@ abstract class AbstractController implements ControllerInterface
     {
         if (!$this->xhr) {
             // in XHR mode, we will not add the main template
+            $site_title = trim((string) psm_get_conf('site_title', ''));
+            $brand = $site_title !== '' ? $site_title : PSM_BRAND_NAME;
             $tpl_data = array(
-                'title' => PSM_BRAND_NAME,
-                'brand_name' => PSM_BRAND_NAME,
+                'title' => $brand,
+                'brand_name' => $brand,
                 'label_back_to_top' => psm_get_lang('system', 'back_to_top'),
                 'add_footer' => $this->add_footer,
                 'version' => 'v' . PSM_VERSION,

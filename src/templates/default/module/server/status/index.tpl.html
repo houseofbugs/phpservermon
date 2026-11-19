@@ -37,7 +37,7 @@
 		<i class="bi bi-activity"></i>
 		<h5 class="text-body">{{ label_none }}</h5>
 		<p>Add your first website, service or host to start monitoring.</p>
-		<div><a class="btn btn-primary" href="{{ url_save|raw }}"><i class="bi bi-plus-lg"></i>{{ label_add_server }}</a></div>
+		{% if not is_public_page %}<div><a class="btn btn-primary" href="{{ url_save|raw }}"><i class="bi bi-plus-lg"></i>{{ label_add_server }}</a></div>{% endif %}
 	</div>
 	{% else %}
 
@@ -45,7 +45,7 @@
 		<div class="monitor-grid">
 			{% for group in groups %}
 			{% for server in group.items %}
-			<a class="card monitor-card {{ group.cls }}" href="{{ server.url_view|raw }}">
+			{% if is_public_page %}<div class="card monitor-card {{ group.cls }}">{% else %}<a class="card monitor-card {{ group.cls }}" href="{{ server.url_view|raw }}">{% endif %}
 				<div class="mc-head">
 					<span class="dot {{ group.cls }}"></span>
 					<span class="mc-title" title="{{ server.label }}">{{ server.label }}</span>
@@ -67,7 +67,7 @@
 					</div>
 					<div class="uptime-legend"><span>24h</span><span>now</span></div>
 				</div>
-			</a>
+			{% if is_public_page %}</div>{% else %}</a>{% endif %}
 			{% endfor %}
 			{% endfor %}
 		</div>
@@ -90,11 +90,11 @@
 					<tbody>
 						{% for group in groups %}
 						{% for server in group.items %}
-						<tr class="clickable" data-href="{{ server.url_view|raw }}">
+						<tr {% if not is_public_page %}class="clickable" data-href="{{ server.url_view|raw }}"{% endif %}>
 							<th scope="row">
 								<div class="d-flex align-items-center gap-2">
 									<span class="dot {{ group.cls }}"></span>
-									<a href="{{ server.url_view|raw }}" class="text-body">{{ server.label }}</a>
+									{% if is_public_page %}<span class="text-body">{{ server.label }}</span>{% else %}<a href="{{ server.url_view|raw }}" class="text-body">{{ server.label }}</a>{% endif %}
 								</div>
 							</th>
 							<td><span class="chip"><i class="bi bi-{{ type_icons[server.type]|default('hdd') }}"></i>{{ server.type_label }}</span></td>

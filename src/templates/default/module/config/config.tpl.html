@@ -18,6 +18,8 @@
         <div class="tab-pane {{ general_active }}" id="config-general" role="tabpanel" aria-labelledby="config-general-tab">
             <!-- General settings -->
             <div class="card form-section"><div class="card-header">{{ label_general }}</div><div class="card-body">
+                <!-- Site title -->
+                {{ macro.input_field("text", "site_title", null, "site_title", label_site_title, site_title, label_site_title, "255") }}
                 <!-- Update check -->
                 {{ macro.input_checkbox("show_update", "show_update[]", label_show_update, show_update_checked) }}
                 <!-- Language -->

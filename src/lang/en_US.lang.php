@@ -107,6 +107,7 @@ $sm_lang = array(
         'level' => 'Level',
         'level_10' => 'Administrator',
         'level_20' => 'User',
+        'level_30' => 'Public (Anonymous)',
         'level_description' => '<b>Administrators</b> have full access: they can manage servers, users and edit the
  global configuration.<br><b>Users</b> can only view and run the updater for the
  servers that have been assigned to them.',
@@ -282,6 +283,7 @@ $sm_lang = array(
     ),
     'config' => array(
         'general' => 'General',
+        'site_title' => 'Site title',
         'language' => 'Language',
         'show_update' => 'Check for updates?',
         'password_encrypt_key' => 'The encryption key password',

@@ -100,7 +100,22 @@ class User
             }
             $this->session = $session;
 
-            if ((!defined('PSM_INSTALL') || !PSM_INSTALL)) {
+            if (
+                defined('PSM_PUBLIC') && PSM_PUBLIC === true &&
+                defined('PSM_PUBLIC_PAGE') && PSM_PUBLIC_PAGE === true
+            ) {
+                $query_user = $this->db_connection->prepare('SELECT * FROM ' .
+                    PSM_DB_PREFIX . 'users WHERE user_name = :user_name AND level = :level');
+                $query_user->bindValue(':user_name', '__PUBLIC__', \PDO::PARAM_STR);
+                $query_user->bindValue(':level', PSM_USER_ANONYMOUS, \PDO::PARAM_INT);
+                $query_user->execute();
+                $pub = $query_user->fetchObject();
+                if ($pub && isset($pub->user_id)) {
+                    $this->user_id = (int) $pub->user_id;
+                    $this->user_is_logged_in = true;
+                    $this->loadPreferences();
+                }
+            } elseif ((!defined('PSM_INSTALL') || !PSM_INSTALL)) {
                 // check the possible login actions:
                 // 1. login via session data (happens each time user opens a page on your php project AFTER
                 // he has successfully logged in via the login form)
@@ -186,20 +201,24 @@ class User
     private function loginWithCookieData()
     {
         if (isset($_COOKIE['rememberme'])) {
-            // extract data from the cookie
-            list ($user_id, $token, $hash) = explode(':', $_COOKIE['rememberme']);
-            // check cookie hash validity
-            if ($hash == hash('sha256', $user_id . ':' . $token . PSM_LOGIN_COOKIE_SECRET_KEY) && !empty($token)) {
-                // cookie looks good, try to select corresponding user
-                // get real token from database (and all other data)
-                $user = $this->getUser($user_id);
+            // extract data from the cookie (supports both 3.6 '_' and legacy ':' delimiters)
+            $sep = strpos($_COOKIE['rememberme'], '_') !== false ? '_' : ':';
+            $parts = explode($sep, $_COOKIE['rememberme']);
+            if (count($parts) === 3) {
+                list($user_id, $token, $hash) = $parts;
+                // check cookie hash validity
+                if ($hash == hash('sha256', $user_id . $sep . $token . PSM_LOGIN_COOKIE_SECRET_KEY) && !empty($token)) {
+                    // cookie looks good, try to select corresponding user
+                    // get real token from database (and all other data)
+                    $user = $this->getUser($user_id);
 
-                if (!empty($user) && $token === $user->rememberme_token) {
-                    $this->setUserLoggedIn($user->user_id, true);
+                    if (!empty($user) && $token === $user->rememberme_token) {
+                        $this->setUserLoggedIn($user->user_id, true);
 
-                    // Cookie token usable only once
-                    $this->newRememberMeCookie();
-                    return true;
+                        // Cookie token usable only once
+                        $this->newRememberMeCookie();
+                        return true;
+                    }
                 }
             }
             // call logout to remove invalid cookie
