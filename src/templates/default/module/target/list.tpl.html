@@ -1,0 +1,78 @@
+{% import 'main/macros.tpl.html' as macro %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+	<p class="text-muted mb-0" style="max-width: 46rem;">Targets are where alerts go besides email. Create a target once, then pick it on any monitor. <b class="text-body">Default</b> targets are pre-selected for new monitors.</p>
+	<div class="dropdown">
+		<button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-plus-lg"></i>Add target</button>
+		<div class="dropdown-menu dropdown-menu-end">
+			{% for t in types %}<a class="dropdown-item" href="{{ t.url|raw }}"><i class="bi bi-{{ t.icon }}"></i>{{ t.label }}</a>{% endfor %}
+		</div>
+	</div>
+</div>
+
+{% if targets is empty %}
+<div class="row g-3">
+	{% for t in types %}
+	<div class="col-md-6 col-xl-3">
+		<a class="card h-100 monitor-card text-decoration-none" href="{{ t.url|raw }}" style="border-left-color: var(--dfs-accent);">
+			<div class="mc-head"><i class="bi bi-{{ t.icon }} fs-4 text-primary"></i><span class="mc-title">{{ t.label }}</span><i class="bi bi-plus-circle text-muted"></i></div>
+			<div class="small text-muted">{{ t.description }}</div>
+		</a>
+	</div>
+	{% endfor %}
+</div>
+{% else %}
+<div class="card table-card">
+	<div class="table-responsive">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th scope="col">Target</th>
+					<th scope="col">Type</th>
+					<th scope="col">Monitors</th>
+					<th scope="col">Last delivery</th>
+					<th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for t in targets %}
+				<tr class="clickable" data-href="{{ t.url_edit|raw }}">
+					<th scope="row">
+						<div class="d-flex align-items-center gap-2">
+							<span class="dot {{ not t.active ? '' : (t.last_status == 'failed' ? 'is-down' : 'is-up') }}"></span>
+							<a class="text-body" href="{{ t.url_edit|raw }}">{{ t.name }}</a>
+							{% if t.is_default %}<span class="chip">Default</span>{% endif %}
+							{% if not t.active %}<span class="chip">Paused</span>{% endif %}
+						</div>
+					</th>
+					<td><span class="chip"><i class="bi bi-{{ t.type_def.icon|default('send') }}"></i>{{ t.type_def.label|default(t.type) }}</span></td>
+					<td class="tabular">{{ t.server_count }} <span class="text-muted">/ {{ server_total }}</span></td>
+					<td>
+						{% if t.last_status == 'failed' %}
+						<span class="status-pill is-down" title="{{ t.last_error }}"><i class="bi bi-exclamation-triangle"></i>Failed</span>
+						<span class="small text-muted ms-1">{{ t.last_sent_nice }}</span>
+						{% elseif t.last_status == 'ok' %}
+						<span class="status-pill is-up"><i class="bi bi-check2"></i>Delivered</span>
+						<span class="small text-muted ms-1">{{ t.last_sent_nice }}</span>
+						{% else %}<span class="text-muted">Never</span>{% endif %}
+					</td>
+					<td class="text-end">
+						<div class="dropdown">
+							<button class="btn btn-ghost btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="bi bi-three-dots"></i></button>
+							<div class="dropdown-menu dropdown-menu-end">
+								<a class="dropdown-item" href="{{ t.url_edit|raw }}"><i class="bi bi-pencil"></i>{{ label_edit }}</a>
+								<a class="dropdown-item" href="{{ t.url_applyall|raw }}"><i class="bi bi-diagram-3"></i>Attach to all monitors</a>
+								<div class="dropdown-divider"></div>
+								<a class="dropdown-item text-danger show-modal" href="{{ t.url_delete|raw }}" data-modal-id="delete" data-modal-param="{{ t.name }}"><i class="bi bi-trash3"></i>{{ label_delete }}</a>
+							</div>
+						</div>
+					</td>
+				</tr>
+				{% if t.last_status == 'failed' and t.last_error %}
+				<tr><td colspan="5" class="small text-danger text-wrap pt-0 border-top-0"><i class="bi bi-arrow-return-right"></i> {{ t.last_error }}</td></tr>
+				{% endif %}
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</div>
+{% endif %}

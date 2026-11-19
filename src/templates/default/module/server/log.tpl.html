@@ -1,9 +1,9 @@
-{% set tab_icons = { 'status': 'activity', 'email': 'envelope', 'sms': 'phone', 'pushover': 'bell', 'telegram': 'telegram', 'jabber': 'chat-dots' } %}
+{% set tab_icons = { 'status': 'activity', 'email': 'envelope' } %}
 <ul class="nav nav-underline mb-3" id="log_tab" role="tablist">
 	{% for tab in tabs %}
 	<li class="nav-item" role="presentation">
 		<a class="nav-link {{ tab.tab_active }}" id="log-{{ tab.id }}-tab" data-bs-toggle="tab" href="#log-{{ tab.id }}" role="tab" aria-controls="log-{{ tab.id }}" aria-selected="{% if tab.tab_active %}true{% else %}false{% endif %}">
-			<i class="bi bi-{{ tab_icons[tab.id]|default('journal') }}"></i>{{ tab.label }}
+			<i class="bi bi-{{ tab.icon|default(tab_icons[tab.id]|default('journal')) }}"></i>{{ tab.label }}
 			<span class="badge rounded-pill text-bg-secondary">{{ tab.entries|length }}</span>
 		</a>
 	</li>
@@ -20,7 +20,7 @@
 				<table class="table table-hover">
 					<thead>
 						<tr>
-							{% if tab.id|lower == 'status' %}<th scope="col">{{ label_server }}</th>{% endif %}
+							{% if tab.show_server %}<th scope="col">{{ label_server }}</th>{% endif %}
 							<th scope="col" style="width: 190px;">{{ label_date }}</th>
 							<th scope="col">{{ label_message }}</th>
 							{% if tab.has_users %}<th scope="col">{{ label_users }}</th>{% endif %}

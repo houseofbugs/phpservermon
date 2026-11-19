@@ -90,6 +90,7 @@ $sm_lang = array(
     'menu' => array(
         'config' => 'Config',
         'server' => 'Servers',
+        'target' => 'Notifications',
         'server_log' => 'Log',
         'server_status' => 'Status',
         'server_update' => 'Update',

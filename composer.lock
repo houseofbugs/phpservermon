@@ -4,88 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c10a4e449b37a3b39f9d6393ae410297",
+    "content-hash": "05a6c2f892c00fabddc4cc8d889b4b58",
     "packages": [
-        {
-            "name": "jaxl/jaxl",
-            "version": "v3.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/jaxl/JAXL.git",
-                "reference": "27aa43c4600b05809779428843d8d51db6ce6e0d"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/jaxl/JAXL/zipball/27aa43c4600b05809779428843d8d51db6ce6e0d",
-                "reference": "27aa43c4600b05809779428843d8d51db6ce6e0d",
-                "shasum": ""
-            },
-            "require": {
-                "ext-curl": "*",
-                "ext-hash": "*",
-                "ext-json": "*",
-                "ext-libxml": "*",
-                "ext-openssl": "*",
-                "ext-pcre": "*",
-                "ext-sockets": "*",
-                "php": ">=5.2.4"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^3.7.0",
-                "squizlabs/php_codesniffer": "*"
-            },
-            "suggest": {
-                "ext-pcntl": "Interrupt JAXL with signals"
-            },
-            "bin": [
-                "jaxlctl"
-            ],
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "3.1.x-dev"
-                }
-            },
-            "autoload": {
-                "classmap": [
-                    "src/JAXL"
-                ],
-                "exclude-from-classmap": [
-                    "/tests/"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "BSD-3-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "Abhinavsingh",
-                    "homepage": "https://abhinavsingh.com/"
-                }
-            ],
-            "description": "Jaxl - Async, Non-Blocking, Event based Networking Library in PHP.",
-            "homepage": "http://jaxl.readthedocs.org/en/latest/index.html",
-            "keywords": [
-                "abhinavsingh",
-                "asynchronous",
-                "event loop",
-                "http",
-                "jabber",
-                "jaxl",
-                "non blocking",
-                "php",
-                "xmpp"
-            ],
-            "support": {
-                "forum": "https://groups.google.com/forum/#!forum/jaxl",
-                "issues": "https://github.com/jaxl/JAXL/issues",
-                "source": "https://github.com/jaxl/JAXL"
-            },
-            "abandoned": true,
-            "time": "2016-09-13T01:59:35+00:00",
-            "published-time": "2016-09-13T02:01:39+00:00"
-        },
         {
             "name": "paragonie/random_compat",
             "version": "v9.99.100",
@@ -136,41 +56,6 @@
             },
             "time": "2020-10-15T08:29:30+00:00",
             "published-time": "2020-10-15T08:34:16+00:00"
-        },
-        {
-            "name": "php-pushover/php-pushover",
-            "version": "v1.0.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/cschalenborgh/php-pushover.git",
-                "reference": "b2d060efacf48e4c6821427691b19db0315ccedd"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/cschalenborgh/php-pushover/zipball/b2d060efacf48e4c6821427691b19db0315ccedd",
-                "reference": "b2d060efacf48e4c6821427691b19db0315ccedd",
-                "shasum": ""
-            },
-            "type": "library",
-            "autoload": {
-                "files": [
-                    "Pushover.php"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "authors": [
-                {
-                    "name": "Chris Schalenborgh",
-                    "email": "chris@schalenborgh.be"
-                }
-            ],
-            "description": "PHP class for the Pushover.net project",
-            "support": {
-                "issues": "https://github.com/cschalenborgh/php-pushover/issues",
-                "source": "https://github.com/cschalenborgh/php-pushover/tree/master"
-            },
-            "time": "2019-09-26T19:38:11+00:00",
-            "published-time": "2019-09-26T19:39:24+00:00"
         },
         {
             "name": "phpmailer/phpmailer",

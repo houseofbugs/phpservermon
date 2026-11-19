@@ -134,11 +134,11 @@ class Installer
         $queries = array();
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "servers` (
             `ip`, `port`, `label`, `type`, `pattern`, `pattern_online`, `redirect_check`,
-            `status`, `rtime`, `active`, `email`, `sms`, `pushover`, `telegram`, `jabber`)
+            `status`, `rtime`, `active`, `email`)
             VALUES ('http://sourceforge.net/index.php', 80, 'SourceForge', 'website', '',
                 'yes', 'bad', 'on', '0.0000000', 'yes', 'yes', 'yes', 'yes', 'yes', 'yes'),
                 ('smtp.gmail.com', 465, 'Gmail SMTP', 'service', '',
-                'yes', 'bad','on', '0.0000000', 'yes', 'yes', 'yes', 'yes', 'yes', 'yes')";
+                'yes', 'bad','on', '0', 'yes', 'yes')";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "users_servers` (`user_id`,`server_id`) VALUES (1, 1), (1, 2);";
         $queries[] = "INSERT INTO `" . PSM_DB_PREFIX . "config` (`key`, `value`) VALUE
                     ('language', 'en_US'),
@@ -148,36 +148,18 @@ class Installer
                     ('proxy_password', ''),
                     ('email_status', '1'),
                     ('email_from_email', 'monitor@example.org'),
-                    ('email_from_name', 'Server Monitor'),
+                    ('email_from_name', 'DFS Monitor'),
                     ('email_smtp', ''),
                     ('email_smtp_host', ''),
                     ('email_smtp_port', ''),
                     ('email_smtp_security', ''),
                     ('email_smtp_username', ''),
                     ('email_smtp_password', ''),
-                    ('sms_status', '0'),
-                    ('sms_gateway', 'messagebird'),
-                    ('sms_gateway_username', 'username'),
-                    ('sms_gateway_password', 'password'),
-                    ('sms_from', '1234567890'),
-                    ('pushover_status', '0'),
-                    ('pushover_api_token', ''),
-                    ('telegram_status', '0'),
-                    ('telegram_api_token', ''),
-                    ('jabber_status', '1'),
-                    ('jabber_host', ''),
-                    ('jabber_port', ''),
-                    ('jabber_username', ''),
-                    ('jabber_domain', ''),
-                    ('jabber_password', ''),
                     ('password_encrypt_key', '" . sha1(microtime()) . "'),
                     ('alert_type', 'status'),
+                    ('combine_notifications', '0'),
                     ('log_status', '1'),
                     ('log_email', '1'),
-                    ('log_sms', '1'),
-                    ('log_pushover', '1'),
-                    ('log_telegram', '1'),
-                    ('log_jabber', '1'),
                     ('log_retention_period', '365'),
                     ('version', '" . PSM_VERSION . "'),
                     ('version_update_check', '" . PSM_VERSION . "'),
@@ -211,11 +193,6 @@ class Installer
                 `rememberme_token` varchar(64) DEFAULT NULL COMMENT 'user''s remember-me cookie token',
                 `level` tinyint(2) unsigned NOT NULL DEFAULT '20',
                 `name` varchar(255) NOT NULL,
-                `mobile` varchar(15) NOT NULL,
-                `pushover_key` varchar(255) NOT NULL,
-                `pushover_device` varchar(255) NOT NULL,
-                `telegram_id` varchar(255) NOT NULL,
-                `jabber` varchar(255) NOT NULL,
                 `email` varchar(255) NOT NULL,
                 PRIMARY KEY (`user_id`),
                 UNIQUE KEY `unique_username` (`user_name`)
@@ -235,7 +212,7 @@ class Installer
             PSM_DB_PREFIX . 'log' => "CREATE TABLE `" . PSM_DB_PREFIX . "log` (
                 `log_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
                 `server_id` int(11) unsigned NOT NULL,
-                `type` enum('status','email','sms','pushover','telegram', 'jabber') NOT NULL,
+                `type` varchar(32) NOT NULL,
                 `message` TEXT NOT NULL,
                 `datetime` timestamp NOT NULL default CURRENT_TIMESTAMP,
                 PRIMARY KEY  (`log_id`)
@@ -268,10 +245,6 @@ class Installer
                 `last_check` datetime NULL,
                 `active` enum('yes','no') NOT NULL default 'yes',
                 `email` enum('yes','no') NOT NULL default 'yes',
-                `sms` enum('yes','no') NOT NULL default 'no',
-                `pushover` enum('yes','no') NOT NULL default 'yes',
-                `telegram` enum('yes','no') NOT NULL default 'yes',
-                `jabber` enum('yes','no') NOT NULL default 'yes',
                 `warning_threshold` mediumint(1) unsigned NOT NULL DEFAULT '1',
                 `warning_threshold_counter` mediumint(1) unsigned NOT NULL DEFAULT '0',
                 `ssl_cert_expiry_days` mediumint(1) unsigned NOT NULL DEFAULT '0',
@@ -306,6 +279,7 @@ class Installer
                 UNIQUE KEY `server_id_date` (`server_id`,`date`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
         );
+        $tables = array_merge($tables, $this->getTargetTables());
 
         foreach ($tables as $name => $sql) {
             $if_table_exists = $this->db->query("SHOW TABLES LIKE '{$name}'");
@@ -357,7 +331,87 @@ class Installer
         if (version_compare($version_from, '3.5.0', '<')) {
             $this->upgrade350();
         }
+        if (version_compare($version_from, '4.0.0', '<')) {
+            $this->upgrade400();
+        }
         psm_update_conf('version', $version_to);
+    }
+
+    /**
+     * Table definitions for notification targets (DFS Monitor 4.0)
+     * @return array
+     */
+    protected function getTargetTables()
+    {
+        return array(
+            PSM_DB_PREFIX . 'targets' => "CREATE TABLE IF NOT EXISTS `" . PSM_DB_PREFIX . "targets` (
+                `target_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+                `name` varchar(100) NOT NULL,
+                `type` varchar(32) NOT NULL,
+                `settings` TEXT NOT NULL,
+                `is_default` tinyint(1) unsigned NOT NULL DEFAULT '0',
+                `active` tinyint(1) unsigned NOT NULL DEFAULT '1',
+                `last_status` varchar(16) NULL DEFAULT NULL,
+                `last_error` varchar(255) NULL DEFAULT NULL,
+                `last_sent` datetime NULL DEFAULT NULL,
+                PRIMARY KEY (`target_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+            PSM_DB_PREFIX . 'servers_targets' => "CREATE TABLE IF NOT EXISTS `" . PSM_DB_PREFIX . "servers_targets` (
+                `server_id` int(11) unsigned NOT NULL,
+                `target_id` int(11) unsigned NOT NULL,
+                PRIMARY KEY (`server_id`, `target_id`),
+                KEY `target_id` (`target_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+        );
+    }
+
+    /**
+     * Upgrade for DFS Monitor 4.0.0:
+     * - remove SMS, Pushover, Telegram and Jabber channels
+     * - add notification targets (webhook, Discord, Teams, Home Assistant)
+     */
+    protected function upgrade400()
+    {
+        $queries = array();
+        foreach ($this->getTargetTables() as $sql) {
+            $queries[] = $sql;
+        }
+        $queries[] = "INSERT IGNORE INTO `" . PSM_DB_PREFIX . "config` (`key`, `value`) VALUES ('combine_notifications', '0');";
+        $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "log` MODIFY `type` varchar(32) NOT NULL;";
+        $queries[] = "DELETE FROM `" . PSM_DB_PREFIX . "log` WHERE `type` IN ('sms','pushover','telegram','jabber');";
+        $queries[] = "DELETE `lu` FROM `" . PSM_DB_PREFIX . "log_users` AS `lu` LEFT JOIN `" . PSM_DB_PREFIX
+            . "log` AS `l` ON `l`.`log_id` = `lu`.`log_id` WHERE `l`.`log_id` IS NULL;";
+        foreach (array('sms', 'pushover', 'telegram', 'jabber') as $column) {
+            if ($this->columnExists('servers', $column)) {
+                $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "servers` DROP COLUMN `{$column}`;";
+            }
+        }
+        foreach (array('mobile', 'pushover_key', 'pushover_device', 'telegram_id', 'jabber') as $column) {
+            if ($this->columnExists('users', $column)) {
+                $queries[] = "ALTER TABLE `" . PSM_DB_PREFIX . "users` DROP COLUMN `{$column}`;";
+            }
+        }
+        $queries[] = "DELETE FROM `" . PSM_DB_PREFIX . "config` WHERE `key` LIKE 'sms\\_%' OR `key` LIKE 'pushover\\_%'
+            OR `key` LIKE 'telegram\\_%' OR `key` LIKE 'jabber\\_%'
+            OR `key` IN ('log_sms', 'log_pushover', 'log_telegram', 'log_jabber');";
+        $this->execSQL($queries);
+        $this->log('SMS, Pushover, Telegram and Jabber channels removed. Configure Notification targets instead.');
+    }
+
+    /**
+     * Check if a column exists on a (prefixed) table. Works on MySQL 8 and MariaDB.
+     * @param string $table table name without prefix
+     * @param string $column
+     * @return bool
+     */
+    protected function columnExists($table, $column)
+    {
+        $result = $this->db->execute(
+            'SELECT COUNT(*) AS `cnt` FROM `information_schema`.`columns`
+                WHERE `table_schema` = :db AND `table_name` = :tbl AND `column_name` = :col',
+            array('db' => $this->db->getDbName(), 'tbl' => PSM_DB_PREFIX . $table, 'col' => $column)
+        );
+        return isset($result[0]['cnt']) && (int) $result[0]['cnt'] > 0;
     }
 
     /**

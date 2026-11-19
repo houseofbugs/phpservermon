@@ -97,16 +97,13 @@ class ServerController extends AbstractServerController
             psm_get_lang('menu', 'server_update')
         );
 
-        $icons = array(
-            'email' => 'icon-envelope',
-            'sms' => 'icon-mobile',
-            'pushover' => 'icon-pushover',
-            'telegram' => 'icon-telegram',
-	        'jabber' => 'icon-jabber'
-        );
-
         $servers = $this->getServers();
         $server_count = count($servers);
+        $target_counts = array();
+        foreach ((array) $this->db->query('SELECT `server_id`, COUNT(*) AS `cnt` FROM `' . PSM_DB_PREFIX
+            . 'servers_targets` GROUP BY `server_id`') as $row) {
+            $target_counts[(int) $row['server_id']] = (int) $row['cnt'];
+        }
 
         for ($x = 0; $x < $server_count; $x++) {
             if ($servers[$x]['type'] == 'website') {
@@ -125,13 +122,11 @@ class ServerController extends AbstractServerController
             }
 
             $servers[$x] = $this->formatServer($servers[$x]);
+            $servers[$x]['target_count'] = $target_counts[(int) $servers[$x]['server_id']] ?? 0;
         }
         $tpl_data['servers'] = $servers;
 
         $tpl_data['config']['email'] = psm_get_conf('email_status');
-        $tpl_data['config']['sms'] = psm_get_conf('sms_status');
-        $tpl_data['config']['pushover'] = psm_get_conf('pushover_status');
-        $tpl_data['config']['telegram'] = psm_get_conf('telegram_status');
 
         return $this->twig->render('module/server/server/list.tpl.html', $tpl_data);
     }
@@ -173,12 +168,24 @@ class ServerController extends AbstractServerController
         }
 
         $tpl_data['users'] = $this->db->select(PSM_DB_PREFIX . 'users', null, array('user_id', 'name'), '', 'name');
+        $target_manager = new \psm\Util\Notify\TargetManager($this->db);
+        $all_targets = $target_manager->all();
 
         switch ($this->server_id) {
             case 0:
                 // insert mode
                 $tpl_data['titlemode'] = psm_get_lang('system', 'insert');
                 $tpl_data['edit_value_warning_threshold'] = '1';
+                $user_idc_selected = array_map('intval', (array) psm_POST('user_id', array($this->getUser()->getUserId())));
+                $target_idc_selected = array();
+                foreach ($all_targets as $t) {
+                    if ((int) $t['is_default'] === 1) {
+                        $target_idc_selected[] = (int) $t['target_id'];
+                    }
+                }
+                if (!empty($_POST)) {
+                    $target_idc_selected = array_map('intval', (array) psm_POST('target_id', array()));
+                }
 
                 $edit_server = $_POST;
                 break;
@@ -193,18 +200,31 @@ class ServerController extends AbstractServerController
                 $tpl_data['titlemode'] = psm_get_lang('system', 'edit') . ' ' . $edit_server['label'];
 
                 $user_idc_selected = $this->getServerUsers($this->server_id);
-                foreach ($tpl_data['users'] as &$user) {
-                    $user['id'] = $user['user_id'];
-                    unset($user['user_id']);
-                    $user['label'] = $user['name'];
-                    unset($user['name']);
-                    if (in_array($user['id'], $user_idc_selected)) {
-                        $user['edit_selected'] = 'selected="selected"';
-                    }
-                }
-
+                $target_idc_selected = $target_manager->serverTargetIds($this->server_id);
                 break;
         }
+
+        foreach ($tpl_data['users'] as &$user) {
+            $user['id'] = $user['user_id'];
+            unset($user['user_id']);
+            $user['label'] = $user['name'];
+            unset($user['name']);
+            if (in_array($user['id'], $user_idc_selected)) {
+                $user['edit_selected'] = 'selected="selected"';
+            }
+        }
+        unset($user);
+
+        $tpl_data['targets'] = array();
+        foreach ($all_targets as $t) {
+            $tpl_data['targets'][] = array(
+                'id' => $t['target_id'],
+                'label' => $t['name'] . ' (' . ($t['type_def']['label'] ?? $t['type']) . ')'
+                    . ((int) $t['active'] === 1 ? '' : ' — paused'),
+                'edit_selected' => in_array((int) $t['target_id'], $target_idc_selected) ? 'selected="selected"' : '',
+            );
+        }
+        $tpl_data['url_targets'] = psm_build_url(array('mod' => 'target'));
 
         if (!empty($edit_server)) {
             // attempt to prefill previously posted fields
@@ -233,25 +253,11 @@ class ServerController extends AbstractServerController
                 'edit_type_selected_' . $edit_server['type'] => 'selected="selected"',
                 'edit_active_selected' => $edit_server['active'],
                 'edit_email_selected' => $edit_server['email'],
-                'edit_sms_selected' => $edit_server['sms'],
-                'edit_pushover_selected' => $edit_server['pushover'],
-                'edit_telegram_selected' => $edit_server['telegram'],
-	            'edit_jabber_selected' => $edit_server['jabber'],
             ));
         }
 
-        $notifications = array('email', 'sms', 'pushover', 'telegram', 'jabber');
-        foreach ($notifications as $notification) {
-            if (psm_get_conf($notification . '_status') == 0) {
-                $tpl_data['warning_' . $notification] = true;
-                $tpl_data['label_warning_' . $notification] = psm_get_lang(
-                    'servers',
-                    'warning_notifications_disabled_' . $notification
-                );
-            } else {
-                $tpl_data['warning_' . $notification] = false;
-            }
-        }
+        $tpl_data['warning_email'] = psm_get_conf('email_status') == 0;
+        $tpl_data['label_warning_email'] = psm_get_lang('servers', 'warning_notifications_disabled_email');
 
         return $this->twig->render('module/server/server/update.tpl.html', $tpl_data);
     }
@@ -307,10 +313,6 @@ class ServerController extends AbstractServerController
             'ssl_cert_expiry_days' => intval(psm_POST('ssl_cert_expiry_days', 1)),
             'active' => in_array(psm_POST('active'), array('yes', 'no')) ? psm_POST('active') : 'no',
             'email' => in_array(psm_POST('email'), array('yes', 'no')) ? psm_POST('email') : 'no',
-            'sms' => in_array(psm_POST('sms'), array('yes', 'no')) ? psm_POST('sms') : 'no',
-            'pushover' => in_array(psm_POST('pushover'), array('yes', 'no')) ? psm_POST('pushover') : 'no',
-            'telegram' => in_array(psm_POST('telegram'), array('yes', 'no')) ? psm_POST('telegram') : 'no',
-            'jabber' => in_array(psm_POST('jabber'), array('yes', 'no')) ? psm_POST('jabber') : 'no',
         );
         // make sure websites start with http://
         if (
@@ -405,6 +407,10 @@ class ServerController extends AbstractServerController
             $this->db->insertMultiple(PSM_DB_PREFIX . 'users_servers', $user_idc_save);
         }
 
+        // update notification targets
+        $target_manager = new \psm\Util\Notify\TargetManager($this->db);
+        $target_manager->setServerTargets($this->server_id, (array) psm_POST('target_id', array()));
+
         $back_to = isset($_GET['back_to']) ? $_GET['back_to'] : 'index';
         if ($back_to == 'view') {
             return $this->runAction('view');
@@ -428,6 +434,7 @@ class ServerController extends AbstractServerController
                 $this->db->delete(PSM_DB_PREFIX . 'users_servers', array('server_id' => $id));
                 $this->db->delete(PSM_DB_PREFIX . 'servers_uptime', array('server_id' => $id));
                 $this->db->delete(PSM_DB_PREFIX . 'servers_history', array('server_id' => $id));
+                $this->db->delete(PSM_DB_PREFIX . 'servers_targets', array('server_id' => $id));
             }
             $this->addMessage(psm_get_lang('servers', 'deleted'), 'success');
         }
@@ -454,6 +461,15 @@ class ServerController extends AbstractServerController
         // create history HTML
         $history = new \psm\Util\Server\HistoryGraph($this->db, $this->twig);
         $tpl_data['html_history'] = $history->createHTML($this->server_id);
+
+        $target_manager = new \psm\Util\Notify\TargetManager($this->db);
+        $tpl_data['server_targets'] = array();
+        foreach ($target_manager->all() as $t) {
+            if (in_array((int) $t['target_id'], $target_manager->serverTargetIds($this->server_id))) {
+                $tpl_data['server_targets'][] = $t;
+            }
+        }
+        $tpl_data['email_enabled'] = (bool) psm_get_conf('email_status');
 
         $sidebar = new \psm\Util\Module\Sidebar($this->twig);
         $this->setSidebar($sidebar);
@@ -575,14 +591,6 @@ class ServerController extends AbstractServerController
             'label_monitoring' => psm_get_lang('servers', 'monitoring'),
             'label_email' => psm_get_lang('servers', 'email'),
             'label_send_email' => psm_get_lang('servers', 'send_email'),
-            'label_sms' => psm_get_lang('servers', 'sms'),
-            'label_send_sms' => psm_get_lang('servers', 'send_sms'),
-            'label_send_pushover' => psm_get_lang('servers', 'send_pushover'),
-            'label_telegram' => psm_get_lang('servers', 'telegram'),
-	    'label_jabber' => psm_get_lang('servers', 'jabber'),
-            'label_pushover' => psm_get_lang('servers', 'pushover'),
-            'label_send_telegram' => psm_get_lang('servers', 'send_telegram'),
-	    'label_send_jabber' => psm_get_lang('servers', 'send_jabber'),
             'label_users' => psm_get_lang('servers', 'users'),
             'label_warning_threshold' => psm_get_lang('servers', 'warning_threshold'),
             'label_warning_threshold_description' => psm_get_lang('servers', 'warning_threshold_description'),

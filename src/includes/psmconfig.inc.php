@@ -30,7 +30,7 @@
 /**
  * Current PSM version
  */
-define('PSM_VERSION', '3.5.2');
+define('PSM_VERSION', '4.0.0');
 
 /**
  * Product name shown in the UI. Can be overridden in config.php.
@@ -43,7 +43,7 @@ if (!defined('PSM_BRAND_NAME')) {
  * URL to check for updates. Will not be checked if turned off on config page.
  * @see psm_update_available()
  */
-define('PSM_UPDATE_URL', 'https://api.github.com/repos/phpservermon/phpservermon/releases/latest');
+define('PSM_UPDATE_URL', 'https://api.github.com/repos/houseofbugs/phpservermon/releases/latest');
 
 /**
  * Default update interval (1 day). Only applicable when updates are enabled.
@@ -111,16 +111,6 @@ define('PSM_CRON_TIMEOUT', 600);
 define('PSM_CURL_TIMEOUT', 10);
 
 /**
- * Clone URL for the Pushover.net service.
- */
-define('PSM_PUSHOVER_CLONE_URL', 'https://pushover.net/apps/clone/php_server_monitor');
-
-/**
- * Get chat id for Telegram service.
- */
-define('PSM_TELEGRAM_GET_ID_URL', 'https://telegram.me/cid_bot');
-
-/**
  * By defining the PSM_BASE_URL, you will force the psm_build_url() to use this.
  * Useful for cronjobs if it cannot be auto-detected.
  */
@@ -138,14 +128,3 @@ if (!defined('PSM_MODULE_DEFAULT')) {
     define('PSM_MODULE_DEFAULT', 'server_status');
 }
 
-if (defined('PSM_JABBER_FORCE_TLS') === false) {
-    define('PSM_JABBER_FORCE_TLS', true);
-}
-if (defined('PSM_JABBER_AUTH_TYPE') === false) {
-    // possible values: PLAIN, X-OAUTH2, DIGEST-MD5, CRAM-MD5, SCRAM-SHA-1, ANONYMOUS, EXTERNAL
-    define('PSM_JABBER_AUTH_TYPE', 'PLAIN'); // default just plain because of google for example :(
-}
-if (defined('PSM_JABBER_DEBUG_LEVEL') === false) {
-    // possible values: ERROR, WARNING, NOTICE, INFO, DEBUG
-    define('PSM_JABBER_DEBUG_LEVEL', JAXLLogger::WARNING);
-}

@@ -134,28 +134,6 @@ namespace {
     }
 
 /**
- * Retrieve a list with available sms gateways
- *
- * @return array
- */
-    function psm_get_sms_gateways()
-    {
-        $sms_gateway_files = glob(PSM_PATH_SMS_GATEWAY . '*.php');
-        $sms_gateways = array();
-
-        foreach ($sms_gateway_files as $file) {
-            $name = basename($file, ".php");
-            // filter system files out
-            if ($name != "Core" && $name != "TxtmsgInterface") {
-                $sms_gateways[strtolower($name)] = $name;
-            }
-        }
-
-        ksort($sms_gateways);
-        return $sms_gateways;
-    }
-
-/**
  * Get a setting from the config.
  *
  * @param string $key
@@ -350,7 +328,7 @@ namespace {
  * Parses a string from the language file with the correct variables replaced in the message
  *
  * @param boolean|null $status
- * @param string $type is either 'sms', 'email', 'pushover_title', 'pushover_message' or 'telegram_message'
+ * @param string $type language key suffix, e.g. 'sms' (short status line) or 'email_subject'
  * @param array $vars server information about the server which may be placed in a message:
  *     %KEY% will be replaced by your value
  * @param boolean $combi parse other message if notifications need to be send combined
@@ -735,165 +713,27 @@ namespace {
     }
 
 /**
- * Prepare a new Pushover util.
- *
- * @return \Pushover
+ * Absolute link to a monitor detail page, safe to call from CLI (cron).
+ * Returns '' when no base URL can be determined.
+ * @param int|null $server_id
+ * @return string
  */
-    function psm_build_pushover()
+    function psm_monitor_url($server_id = null)
     {
-        $pushover = new \Pushover();
-        $pushover->setToken(psm_get_conf('pushover_api_token'));
-
-        return $pushover;
+        $params = $server_id ? array('mod' => 'server', 'action' => 'view', 'id' => (int) $server_id) : array();
+        if ((defined('PSM_BASE_URL') && PSM_BASE_URL) || isset($_SERVER['HTTP_HOST'])) {
+            return psm_build_url($params, true, false);
+        }
+        return '';
     }
 
 /**
- *
- * @return \Telegram
+ * Absolute link to the dashboard ('' if unknown).
+ * @return string
  */
-    function psm_build_telegram()
+    function psm_dashboard_url()
     {
-        $telegram = new \Telegram();
-        $telegram->setToken(psm_get_conf('telegram_api_token'));
-
-        return $telegram;
-    }
-
-    /**
-     * Send message via XMPP.
-     *
-     * @param string      $host
-     * @param string      $username
-     * @param string      $password
-     * @param array       $receivers
-     * @param string      $message
-     * @param int|null    $port
-     * @param string|null $domain
-     */
-    function psm_jabber_send_message($host, $username, $password, $receivers, $message, $port = null, $domain = null)
-    {
-        $options = [
-            'jid' => $username, // incl. gmail.com
-            'pass' => $password,
-            'domain' => $domain, // gmail.com or null
-            'host' => $host, // talk.google.com
-            'port' => $port, // talk.google.com needs to have 5223 ... 5222 - CN problem - gmail.com vs talk.google.com
-            'log_path' => __DIR__ . '/../../logs/jaxl.log', // own log
-
-            // force tls
-            'force_tls' => PSM_JABBER_FORCE_TLS,
-            // (required) perform X-OAUTH2
-            'auth_type' => PSM_JABBER_AUTH_TYPE, //'X-OAUTH2', // auth failure with this option :( so just PLAIN ...
-
-            'log_level' => PSM_JABBER_DEBUG_LEVEL
-        ];
-
-        try {
-            $client = new JAXL($options);
-
-            // Add Callbacks
-            $client->add_cb('on_auth_success', function () use ($client, $receivers, $message) {
-                JAXLLogger::info('got on_auth_success cb');
-                foreach ($receivers as $receiver) {
-	                $client->send_chat_msg($receiver, $message);
-                }
-                $client->send_end_stream();
-            });
-            $client->add_cb('on_auth_failure', function ($reason) use ($client) {
-                $client->send_end_stream();
-                JAXLLogger::info('got on_auth_failure cb with reason: ' . $reason);
-            });
-            $client->add_cb('on_disconnect', function () use ($client) {
-                JAXLLogger::info('got on_disconnect cb');
-            });
-
-            $client->start();
-        } catch (Exception $ex) {
-            JAXLLogger::error('Exception: ' . $ex->getMessage());
-        }
-    }
-
-/**
- * Prepare a new SMS util.
- *
- * @return \psm\Txtmsg\TxtmsgInterface
- */
-    function psm_build_sms()
-    {
-        $sms = null;
-
-        // open the right class
-        // not making this any more dynamic, because perhaps some gateways need custom settings
-        switch (strtolower(psm_get_conf('sms_gateway'))) {
-            case 'mosms':
-                $sms = new \psm\Txtmsg\Mosms();
-                break;
-            case 'smsit':
-                $sms = new \psm\Txtmsg\Smsit();
-                break;
-            case 'inetworx':
-                $sms = new \psm\Txtmsg\Inetworx();
-                break;
-            case 'messagebird':
-                $sms = new \psm\Txtmsg\Messagebird();
-                break;
-            case 'spryng':
-                $sms = new \psm\Txtmsg\Spryng();
-                break;
-            case 'clickatell':
-                $sms = new \psm\Txtmsg\Clickatell();
-                break;
-            case 'textmarketer':
-                $sms = new \psm\Txtmsg\Textmarketer();
-                break;
-            case 'smsglobal':
-                $sms = new \psm\Txtmsg\Smsglobal();
-                break;
-            case 'freevoipdeal':
-                $sms = new \psm\Txtmsg\FreeVoipDeal();
-                break;
-            case 'nexmo':
-                $sms = new \psm\Txtmsg\Nexmo();
-                break;
-            case 'freemobilesms':
-                $sms = new \psm\Txtmsg\FreeMobileSMS();
-                break;
-            case 'clicksend':
-                $sms = new \psm\Txtmsg\ClickSend();
-                break;
-            case 'octopush':
-                $sms = new \psm\Txtmsg\Octopush();
-                break;
-            case 'smsgw':
-                $sms = new \psm\Txtmsg\Smsgw();
-                break;
-            case 'twilio':
-                $sms = new \psm\Txtmsg\Twilio();
-                break;
-            case 'cmbulksms':
-                $sms = new \psm\Txtmsg\CMBulkSMS();
-                break;
-            case 'gatewayapi':
-                $sms = new \psm\Txtmsg\GatewayAPI();
-                break;
-            case 'callr':
-                $sms = new \psm\Txtmsg\Callr();
-                break;
-            case 'plivo':
-                $sms = new \psm\Txtmsg\Plivo();
-                break;
-            case 'solutionsinfini':
-                $sms = new \psm\Txtmsg\SolutionsInfini();
-                break;
-        }
-
-        // copy login information from the config file
-        if ($sms) {
-            $sms->setLogin(psm_get_conf('sms_gateway_username'), psm_get_conf('sms_gateway_password'));
-            $sms->setOriginator(psm_get_conf('sms_from'));
-        }
-
-        return $sms;
+        return psm_monitor_url(null);
     }
 
 /**
@@ -905,7 +745,7 @@ namespace {
  */
     function psm_build_url($params = array(), $urlencode = true, $htmlentities = true)
     {
-        if (defined('PSM_BASE_URL') && PSM_BASE_URL !== null) {
+        if (defined('PSM_BASE_URL') && PSM_BASE_URL !== null && PSM_BASE_URL !== '') {
             $url = PSM_BASE_URL;
         } else {
             $url = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') ||
@@ -921,13 +761,14 @@ namespace {
             $url .= '?';
             if (is_array($params)) {
                 $delim = ($htmlentities) ? '&amp;' : '&';
-
+                $pairs = array();
                 foreach ($params as $k => $v) {
                     if ($urlencode) {
                         $v = urlencode($v);
                     }
-                    $url .= $delim . $k . '=' . $v;
+                    $pairs[] = $k . '=' . $v;
                 }
+                $url .= implode($delim, $pairs);
             } else {
                 $url .= $params;
             }
@@ -1079,63 +920,4 @@ namespace {
         return $decrypted;
     }
 
-/**
-* Send notification to Telegram
-*
-* @return string
-* @author Tim Zandbergen <tim@xervion.nl>
-*/
-    class Telegram
-    {
-        private $token;
-        private $user;
-        private $message;
-        private $url;
-
-        public function setToken($token)
-        {
-            $this->token = (string) $token;
-        }
-        public function setUser($user)
-        {
-            $this->user = (string) $user;
-        }
-        public function setMessage($message)
-        {
-            $message = str_replace("<ul>", "", $message);
-            $message = str_replace("</ul>", "\n", $message);
-            $message = str_replace("<li>", "- ", $message);
-            $message = str_replace("</li>", "\n", $message);
-            $message = str_replace("<br>", "\n", $message);
-            $message = str_replace("<br/>", "\n", $message);
-            $this->message = (string) $message;
-        }
-        public function sendurl()
-        {
-            $con = curl_init($this->url);
-            curl_setopt($con, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($con, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_setopt($con, CURLOPT_TIMEOUT, 60);
-            $response = curl_exec($con);
-            $response = json_decode($response, true);
-            return $response;
-        }
-        public function send()
-        {
-            if (!empty($this->token) && !empty($this->user) && !empty($this->message)) {
-                $this->url = 'https://api.telegram.org/bot' . urlencode($this->token) .
-                '/sendMessage?chat_id=' . urlencode($this->user) . '&text=' .
-                urlencode($this->message) . '&parse_mode=HTML&disable_web_page_preview=True';
-            }
-            return $this->sendurl();
-        }
-        // Get the bots username
-        public function getBotUsername()
-        {
-            if (!empty($this->token)) {
-                $this->url = 'https://api.telegram.org/bot' . urlencode($this->token) . '/getMe';
-            }
-            return $this->sendurl();
-        }
-    }
 }

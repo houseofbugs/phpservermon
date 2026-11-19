@@ -56,20 +56,22 @@
 	<div class="col-lg-4">
 		<div class="card h-100">
 			<div class="card-header"><i class="bi bi-bell me-2 text-primary"></i>{{ label_fieldset_monitoring }}</div>
-			{% set channels = [
-				{ 'label': label_monitoring, 'val': active, 'icon': 'eye' },
-				{ 'label': label_email, 'val': email, 'icon': 'envelope' },
-				{ 'label': label_sms, 'val': sms, 'icon': 'phone' },
-				{ 'label': label_pushover, 'val': pushover, 'icon': 'bell' },
-				{ 'label': label_telegram, 'val': telegram, 'icon': 'telegram' },
-				{ 'label': label_jabber, 'val': jabber, 'icon': 'chat-dots' }
-			] %}
 			<ul class="channel-list">
-				{% for c in channels %}
-				<li class="{{ c.val|lower == 'yes' ? 'on' : 'off' }}">
-					<span class="text-body"><i class="bi bi-{{ c.icon }} me-2 text-muted"></i>{{ c.label }}</span>
-					{% if c.val|lower == 'yes' %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}
+				<li class="{{ active|lower == 'yes' ? 'on' : 'off' }}">
+					<span class="text-body"><i class="bi bi-eye me-2 text-muted"></i>{{ label_monitoring }}</span>
+					{% if active|lower == 'yes' %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}
 				</li>
+				<li class="{{ email|lower == 'yes' and email_enabled ? 'on' : 'off' }}">
+					<span class="text-body"><i class="bi bi-envelope me-2 text-muted"></i>{{ label_email }}</span>
+					{% if email|lower == 'yes' and email_enabled %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-dash-circle"></i>{% endif %}
+				</li>
+				{% for t in server_targets %}
+				<li class="{{ t.active ? 'on' : 'off' }}">
+					<span class="text-body"><i class="bi bi-{{ t.type_def.icon|default('send') }} me-2 text-muted"></i>{{ t.name }}</span>
+					{% if t.last_status == 'failed' %}<i class="bi bi-exclamation-triangle-fill text-danger" title="Last delivery failed"></i>{% elseif t.active %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-pause-circle"></i>{% endif %}
+				</li>
+				{% else %}
+				<li class="off"><span class="small">No notification targets — <a href="index.php?mod=target">add one</a></span></li>
 				{% endfor %}
 			</ul>
 		</div>

@@ -1,0 +1,125 @@
+{% import 'main/macros.tpl.html' as macro %}
+<form action="{{ url_save|raw }}" method="post" class="form-narrow" id="target_form" autocomplete="off" data-target-id="{{ target_id }}">
+	{{ macro.input_csrf() }}
+	<input type="hidden" name="type" value="{{ type }}">
+
+	<div class="card form-section">
+		<div class="card-header"><i class="bi bi-{{ type_def.icon }}"></i>{{ titlemode }}</div>
+		<div class="card-body">
+			<p class="text-muted small">{{ type_def.description }}</p>
+			{{ macro.input_field("text", "name", null, "name", "Name", name, "e.g. Ops channel", "100", "name_help", "Shown in the monitor's target picker and in the log.", null, false, true, true) }}
+			{% for f in fields %}
+				{% set fid = 'setting_' ~ f.name %}
+				{% if f.type == 'checkbox' %}
+				<div class="mb-3">
+					<input type="hidden" name="settings[{{ f.name }}]" value="0">
+					<div class="form-check form-switch">
+						<input class="form-check-input" type="checkbox" role="switch" id="{{ fid }}" name="settings[{{ f.name }}]" value="1" {% if f.value == '1' %}checked{% endif %}>
+						<label class="form-check-label" for="{{ fid }}">{{ f.label }}</label>
+					</div>
+					{% if f.help %}<div class="form-text">{{ f.help }}</div>{% endif %}
+				</div>
+				{% elseif f.type == 'textarea' %}
+				<div class="mb-3">
+					<label class="form-label" for="{{ fid }}">{{ f.label }}</label>
+					<textarea class="form-control font-monospace" rows="3" id="{{ fid }}" name="settings[{{ f.name }}]" placeholder="{{ f.placeholder|default('') }}">{{ f.value }}</textarea>
+					{% if f.help %}<div class="form-text">{{ f.help }}</div>{% endif %}
+				</div>
+				{% else %}
+				<div class="mb-3">
+					<label class="form-label" for="{{ fid }}">{{ f.label }}{% if f.required %} <span class="text-danger">*</span>{% endif %}</label>
+					<div class="input-group">
+						<input class="form-control" type="{{ f.type == 'url' ? 'url' : (f.type == 'password' ? 'password' : 'text') }}" id="{{ fid }}" name="settings[{{ f.name }}]"
+							value="{{ f.value }}" placeholder="{{ f.type == 'password' and f.has_value ? '•••••••• (saved — leave blank to keep)' : f.placeholder|default('') }}"
+							{% if f.required and not (f.type == 'password' and f.has_value) %}required{% endif %} {% if f.type == 'password' %}autocomplete="new-password"{% endif %}
+							{% if type == 'homeassistant' and f.name == 'service' %}list="ha_services"{% endif %}>
+						{% if type == 'homeassistant' and f.name == 'service' %}
+						<button class="btn btn-secondary" type="button" id="ha_load_services"><i class="bi bi-cloud-download"></i>Load services</button>
+						{% endif %}
+					</div>
+					{% if type == 'homeassistant' and f.name == 'service' %}<datalist id="ha_services"></datalist><div class="form-text" id="ha_services_status"></div>{% endif %}
+					{% if f.help %}<div class="form-text">{{ f.help }}</div>{% endif %}
+				</div>
+				{% endif %}
+			{% endfor %}
+		</div>
+	</div>
+
+	<div class="card form-section">
+		<div class="card-header"><i class="bi bi-sliders"></i>Behaviour</div>
+		<div class="card-body">
+			<div class="mb-3">
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" role="switch" id="active" name="active" value="1" {% if active %}checked{% endif %}>
+					<label class="form-check-label" for="active">Active</label>
+				</div>
+				<div class="form-text">Pause a target without detaching it from monitors.</div>
+			</div>
+			<div class="mb-3">
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" role="switch" id="is_default" name="is_default" value="1" {% if is_default %}checked{% endif %}>
+					<label class="form-check-label" for="is_default">Default for new monitors</label>
+				</div>
+			</div>
+			{% if not target_id %}
+			<div class="mb-0">
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" role="switch" id="apply_all" name="apply_all" value="1">
+					<label class="form-check-label" for="apply_all">Attach to all existing monitors now</label>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+
+	<div class="form-actions">
+		{{ macro.button_save(null, 'Save target') }}
+		<button class="btn btn-secondary" type="button" id="target_test"><i class="bi bi-send"></i>Send test</button>
+		<a class="btn btn-ghost" href="{{ url_back|raw }}">Cancel</a>
+		<span class="small ms-2" id="target_test_result" role="status"></span>
+	</div>
+</form>
+<script>
+(function () {
+	var form = document.getElementById('target_form');
+	function post(action) {
+		var data = new URLSearchParams(new FormData(form));
+		data.set('action', action);
+		data.set('target_id', form.getAttribute('data-target-id'));
+		return fetch('index.php?xhr=1&mod=target&action=' + action, {
+			method: 'POST', credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: data.toString()
+		}).then(function (r) { return r.json(); });
+	}
+	var out = document.getElementById('target_test_result');
+	document.getElementById('target_test').addEventListener('click', function () {
+		var btn = this;
+		btn.disabled = true;
+		out.className = 'small ms-2 text-muted';
+		out.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending…';
+		post('test').then(function (res) {
+			out.className = 'small ms-2 ' + (res.ok ? 'text-success' : 'text-danger');
+			out.innerHTML = res.ok ? '<i class="bi bi-check-circle-fill"></i> Delivered (HTTP ' + res.code + ')' : '<i class="bi bi-x-circle-fill"></i> ' + (res.error || 'Failed');
+		}).catch(function () {
+			out.className = 'small ms-2 text-danger'; out.textContent = 'Request failed';
+		}).finally(function () { btn.disabled = false; });
+	});
+	var load = document.getElementById('ha_load_services');
+	if (load) {
+		load.addEventListener('click', function () {
+			var status = document.getElementById('ha_services_status');
+			var list = document.getElementById('ha_services');
+			status.className = 'form-text'; status.textContent = 'Loading…';
+			post('services').then(function (res) {
+				if (!res.ok) { status.className = 'form-text text-danger'; status.textContent = res.error || 'Failed'; return; }
+				list.innerHTML = '';
+				res.services.forEach(function (s) { var o = document.createElement('option'); o.value = s; list.appendChild(o); });
+				status.className = 'form-text text-success';
+				status.textContent = res.services.length + ' notify services found — start typing or pick from the list.';
+				document.getElementById('setting_service').focus();
+			}).catch(function () { status.className = 'form-text text-danger'; status.textContent = 'Request failed'; });
+		});
+	}
+})();
+</script>

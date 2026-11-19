@@ -54,10 +54,6 @@ class LogController extends AbstractServerController
         $tpl_data = array(
             'label_status' => psm_get_lang('log', 'status'),
             'label_email' => psm_get_lang('log', 'email'),
-            'label_sms' => psm_get_lang('log', 'sms'),
-            'label_pushover' => psm_get_lang('log', 'pushover'),
-            'label_telegram' => psm_get_lang('log', 'telegram'),
-	        'label_jabber' => psm_get_lang('log', 'jabber'),
             'label_title' => psm_get_lang('log', 'title'),
             'label_server' => psm_get_lang('servers', 'server'),
             'label_type' => psm_get_lang('log', 'type'),
@@ -89,7 +85,8 @@ class LogController extends AbstractServerController
             );
         }
 
-        $log_types = array('status', 'email', 'sms', 'pushover', 'telegram', 'jabber');
+        $target_types = \psm\Util\Notify\TargetTypes::all();
+        $log_types = array_merge(array('status', 'email'), array_keys(\psm\Util\Notify\TargetTypes::all()));
 
         foreach ($log_types as $key) {
             $records = $this->getEntries($key);
@@ -97,8 +94,10 @@ class LogController extends AbstractServerController
 
             $tab_data = array(
                 'id' => $key,
-                'label' => psm_get_lang('log', $key),
-                'has_users' => ($key == 'status') ? false : true,
+                'label' => isset($target_types[$key]) ? $target_types[$key]['label'] : psm_get_lang('log', $key),
+                'icon' => isset($target_types[$key]) ? $target_types[$key]['icon'] : null,
+                'has_users' => ($key == 'email'),
+                'show_server' => ($key != 'email'),
                 'no_logs' => ($log_count == 0) ? true : false,
                 'tab_active' => ($key == 'status') ? 'active' : '',
             );
@@ -106,7 +105,7 @@ class LogController extends AbstractServerController
             for ($x = 0; $x < $log_count; $x++) {
                 $record = &$records[$x];
                 $record['users'] = '';
-                if ($key == 'status') {
+                if ($key != 'email') {
                     $record['server'] = $record['label'];
                     $record['type_icon'] = ($record['server_type'] == 'website') ? 'globe-americas' : 'cogs';
                     $record['type_title'] = psm_get_lang('servers', 'type_' . $record['server_type']);

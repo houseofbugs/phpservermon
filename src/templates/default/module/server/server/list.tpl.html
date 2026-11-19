@@ -39,10 +39,7 @@
 							<div class="d-flex gap-2 text-muted fs-6">
 								{% if server.active|lower == 'yes' %}<i class="bi bi-eye text-body" title="{{ server.active_title }}"></i>{% else %}<i class="bi bi-eye-slash" title="{{ server.active_title }}"></i>{% endif %}
 								{% if server.email|lower == 'yes' and config.email %}<i class="bi bi-envelope" title="{{ label_email }}"></i>{% endif %}
-								{% if server.sms|lower == 'yes' and config.sms %}<i class="bi bi-phone" title="{{ label_sms }}"></i>{% endif %}
-								{% if server.pushover|lower == 'yes' and config.pushover %}<i class="bi bi-bell" title="{{ label_pushover }}"></i>{% endif %}
-								{% if server.telegram|lower == 'yes' and config.telegram %}<i class="bi bi-telegram" title="{{ label_telegram }}"></i>{% endif %}
-								{% if server.jabber|lower == 'yes' %}<i class="bi bi-chat-dots" title="{{ label_jabber }}"></i>{% endif %}
+								{% if server.target_count > 0 %}<span class="d-inline-flex align-items-center gap-1" title="{{ server.target_count }} notification target(s)"><i class="bi bi-send"></i><small>{{ server.target_count }}</small></span>{% endif %}
 							</div>
 						</td>
 						{% if user_level == 10 %}

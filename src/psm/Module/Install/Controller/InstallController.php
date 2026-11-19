@@ -249,12 +249,7 @@ class InstallController extends AbstractController
             'password' => psm_POST('password'),
             'password_repeat' => psm_POST('password_repeat'),
             'email' => psm_POST('email', ''),
-            'mobile' => '',
             'level' => PSM_USER_ADMIN,
-            'pushover_key' => '',
-            'pushover_device' => '',
-            'telegram_id' => '',
-	        'jabber' => ''
         );
 
         $validator = $this->container->get('util.user.validator');

@@ -118,10 +118,19 @@
 		<div class="card-body pt-1">
 			{{ macro.input_select_monitoring("active", "active", label_monitoring, edit_active_selected, label_yes, label_no) }}
 			{{ macro.input_select_monitoring("email", "email", label_send_email, edit_email_selected, label_yes, label_no, warning_email, label_warning_email) }}
-			{{ macro.input_select_monitoring("sms", "sms", label_send_sms, edit_sms_selected, label_yes, label_no, warning_sms, label_warning_sms) }}
-			{{ macro.input_select_monitoring("pushover", "pushover", label_send_pushover, edit_pushover_selected, label_yes, label_no, warning_pushover, label_warning_pushover) }}
-			{{ macro.input_select_monitoring("telegram", "telegram", label_send_telegram, edit_telegram_selected, label_yes, label_no, warning_telegram, label_warning_telegram) }}
-			{{ macro.input_select_monitoring("jabber", "jabber", label_send_jabber, edit_jabber_selected, label_yes, label_no, warning_jabber, label_warning_jabber) }}
+			<div class="pt-3">
+				<div class="d-flex justify-content-between align-items-center">
+					<label class="form-label" for="target_id">Notification targets</label>
+					<a class="small" href="{{ url_targets|raw }}"><i class="bi bi-gear"></i> Manage targets</a>
+				</div>
+				{% if targets %}
+				<select class="ts-multi" id="target_id" name="target_id[]" data-placeholder="Choose Discord, Teams, Home Assistant or webhook targets…" multiple autocomplete="off">
+					{% for t in targets %}<option value="{{ t.id }}" {{ t.edit_selected|raw }}>{{ t.label }}</option>{% endfor %}
+				</select>
+				{% else %}
+				<div class="text-muted small">No targets yet. <a href="{{ url_targets|raw }}">Create a Discord, Teams, Home Assistant or webhook target</a>.</div>
+				{% endif %}
+			</div>
 		</div>
 	</div>
 

@@ -103,7 +103,7 @@ class UserController extends AbstractController
         $users = $this->db->select(
             PSM_DB_PREFIX . 'users',
             null,
-            array('user_id', 'user_name', 'level', 'name', 'mobile', 'email'),
+            array('user_id', 'user_name', 'level', 'name', 'email'),
             null,
             array('name')
         );
@@ -157,11 +157,6 @@ class UserController extends AbstractController
         $fields_prefill = array(
             'name',
             'user_name',
-            'mobile',
-            'pushover_key',
-            'pushover_device',
-            'telegram_id',
-            'jabber',
             'email'
         );
 
@@ -254,11 +249,6 @@ class UserController extends AbstractController
             'password',
             'password_repeat',
             'level',
-            'mobile',
-            'pushover_key',
-            'pushover_device',
-            'telegram_id',
-            'jabber',
             'email'
         );
         $clean = array();
@@ -391,17 +381,6 @@ class UserController extends AbstractController
             'label_password_repeat' => psm_get_lang('users', 'password_repeat'),
             'label_level' => psm_get_lang('users', 'level'),
             'label_level_description' => psm_get_lang('users', 'level_description'),
-            'label_mobile' => psm_get_lang('users', 'mobile'),
-            'label_pushover' => psm_get_lang('users', 'pushover'),
-            'label_pushover_description' => psm_get_lang('users', 'pushover_description'),
-            'label_pushover_key' => psm_get_lang('users', 'pushover_key'),
-            'label_pushover_device' => psm_get_lang('users', 'pushover_device'),
-            'label_pushover_device_description' => psm_get_lang('users', 'pushover_device_description'),
-            'label_telegram' => psm_get_lang('users', 'telegram'),
-            'label_telegram_id' => psm_get_lang('users', 'telegram_chat_id'),
-            'label_telegram_id_description' => psm_get_lang('users', 'telegram_chat_id_description'),
-            'label_jabber' => psm_get_lang('users', 'jabber'),
-            'label_jabber_description' => psm_get_lang('users', 'jabber_description'),
             'label_email' => psm_get_lang('users', 'email'),
             'label_servers' => psm_get_lang('menu', 'server'),
             'label_save' => psm_get_lang('system', 'save'),

@@ -11,13 +11,12 @@
 					<tr>
 						<th scope="col">{{ label_user }}</th>
 						<th scope="col">{{ label_email }}</th>
-						<th scope="col">{{ label_mobile }}</th>
 						<th scope="col" class="d-none d-lg-table-cell">{{ label_servers }}</th>
 						<th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th>
 					</tr>
 				</thead>
 				<tbody>
-					<tr class="no-result"><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching users</td></tr>
+					<tr class="no-result"><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching users</td></tr>
 					{% for user in users %}
 					<tr>
 						<th scope="row">
@@ -30,7 +29,6 @@
 							</div>
 						</th>
 						<td class="text-muted">{{ user.email }}</td>
-						<td class="text-muted">{{ user.mobile|default('—') }}</td>
 						<td class="d-none d-lg-table-cell">
 							<div class="d-flex flex-wrap gap-1">
 								{% for server in user.emp_servers %}<a class="chip" href="{{ server.url|raw }}">{{ server.label }}</a>{% else %}<span class="text-muted">—</span>{% endfor %}

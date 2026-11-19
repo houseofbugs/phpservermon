@@ -109,7 +109,7 @@
 			<a class="brand border-0 p-0" href="index.php">{{ layout.brand_mark() }}<span class="brand-text">{{ brand_name }}</span></a>
 			<div>
 				<h2 class="mb-3">Know the moment something goes down.</h2>
-				<p class="text-muted mb-4" style="max-width: 26rem;">Website, service and ping monitoring with instant alerts over email, SMS, Pushover, Telegram and Jabber.</p>
+				<p class="text-muted mb-4" style="max-width: 26rem;">Website, service and ping monitoring with instant alerts to email, Discord, Microsoft Teams, Home Assistant and webhooks.</p>
 				<div class="hero-strip uptime-strip" aria-hidden="true">
 					{% for i in 1..32 %}<span class="{{ i == 21 ? 'partial' : (i == 22 ? 'down' : 'up') }}"></span>{% endfor %}
 				</div>
