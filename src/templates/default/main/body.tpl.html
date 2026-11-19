@@ -1,94 +1,140 @@
+{% macro brand_mark() %}<span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13h4l2-5 3 9 2.5-6 1.5 2h7"/></svg></span>{% endmacro %}
+{% import _self as layout %}
 <!doctype html>
-<html lang="{{ language_current }}" dir="{{ direction_current }}" class="{{ direction_current }}">
-
+<html lang="{{ language_current }}" dir="{{ direction_current }}" data-bs-theme="dark">
 <head>
 	<meta charset="utf-8">
-	<title>{{ title }}{% if subtitle %} - {{ subtitle }}{% endif %}</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	<meta name="description" content="PHP Server Monitor - {{ subtitle }}">
-	<meta name="robots" content="noindex" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<link rel="manifest" href="manifest.json">
+	<title>{% if subtitle %}{{ subtitle }} · {% endif %}{{ title }}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="{{ title }}{% if subtitle %} - {{ subtitle }}{% endif %}">
+	<meta name="robots" content="noindex">
+	<meta name="color-scheme" content="dark light">
+	<meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+	<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
 	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black">
-	<meta name="apple-mobile-web-app-title" content="PSM">
-	<link rel="apple-touch-icon" href="phpservermon.png">
-	<meta name="msapplication-TileImage" content="phpservermon.png">
-	<meta name="msapplication-TileColor" content="#424242">
-	<!-- TODO add base url -->
-  	<!-- <link rel="canonical" href=""> -->
-	<meta name="theme-color" content="#424242">
-	<link rel="icon" type="image/x-icon" href="favicon.ico" />
-	<link rel="icon" type="image/png" href="favicon.png" />
-	<link rel="apple-touch-icon" href="favicon.png" />
-	<link href="src/templates/default/static/css/bootstrap.min.css" rel="stylesheet">
-	<link href="src/templates/default/static/plugin/bootstrap-select/dist/css/bootstrap-select.min.css" rel="stylesheet">
-	<link href="src/templates/default/static/css/style.min.css" rel="stylesheet">
-	<!--[if lt IE 9]>
-    	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
+	<meta name="apple-mobile-web-app-title" content="{{ title }}">
+	<link rel="manifest" href="manifest.json">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="alternate icon" href="favicon.ico">
+	<script>
+		(function () {
+			try {
+				var d = document.documentElement, t = localStorage.getItem('dfs-theme');
+				d.setAttribute('data-bs-theme', t === 'light' ? 'light' : 'dark');
+				if (localStorage.getItem('dfs-sidebar') === 'collapsed') { d.classList.add('sidebar-collapsed'); }
+			} catch (e) {}
+		})();
+	</script>
+	<link href="src/templates/default/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+	<link href="src/templates/default/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
+	<link href="src/templates/default/static/vendor/tom-select/tom-select.bootstrap5.min.css" rel="stylesheet">
+	<link href="src/templates/default/static/css/dfs.css" rel="stylesheet">
 </head>
-
 <body>
-	<nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark">
-		<a class="navbar-brand" href="index.php">{{ title }}</a>
-		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbar"
-		 aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
-
-		<div class="collapse navbar-collapse" id="navbar">
-			{{ html_menu|raw }}
-		</div>
-	</nav>
-	{{ html_modal|raw }}
-	<main role="main" class="container">
-		<noscript>
-			<div class="alert alert-danger" role="alert">
-				<b>Javascript is disabled!</b> PHP Server Monitor works best with JavaScript enabled!
+{% set alert_icons = { 'danger': 'x-octagon', 'success': 'check-circle', 'warning': 'exclamation-triangle', 'info': 'info-circle', 'primary': 'info-circle' } %}
+{% if nav is defined and nav %}
+	<aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-label="Main navigation">
+		<div class="offcanvas-body">
+			<a class="brand" href="index.php">
+				{{ layout.brand_mark() }}
+				<span class="brand-text">{{ brand_name }}</span>
+				<button type="button" class="btn-close ms-auto d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Close"></button>
+			</a>
+			<div class="sidebar-section">Monitoring</div>
+			<nav class="nav flex-column sidebar-nav">
+				{% for item in nav.menu %}
+				<a class="nav-link {{ item.active }}" href="{{ item.url|raw }}" title="{{ item.label }}" {% if item.active %}aria-current="page"{% endif %}>
+					<i class="bi bi-{{ item.icon }}"></i><span class="nav-label">{{ item.label }}</span>
+				</a>
+				{% endfor %}
+			</nav>
+			<div class="sidebar-footer">
+				<span class="sidebar-footer-text">{{ brand_name }} · {{ version }}</span>
 			</div>
-		</noscript>
-		{% if not user_level and subtitle %}<h1>{{ subtitle }}</h1>{% endif %}
-		<div class="container">{{ header_accessories|raw }}</div>
-		{% for msg in messages %}
-		<div class="alert alert-{{ msg.class }}" role="alert">
-			<i class="fas fa-{{ msg.icon }}"></i> {{ msg.message|raw }}
 		</div>
-		{% endfor %}
-		<div class="container">
-			<div class="row">{{ html_sidebar|raw }}</div>
-			<div class="row" id="content">{{ html_content|raw }}</div>
-		</div>
-	</main>
-	{% if add_footer %}
-	{% block footer %}
-	<footer class="footer" role="contentinfo">
-		<div class="container">
-			<span class="text-muted">
-				Powered by
-				<a href="https://github.com/phpservermon/phpservermon/" target="_blank" rel="noopener">
-					PHP Server Monitor {{ version }}.
-				</a><span style="color:red;">{{ update_available|raw }}</span><a href="#" class="float-right">{{ label_back_to_top }}</a>
-			</span>
-		</div>
-	</footer>
-	{% endblock %}
-	{% endif %}
-	<script src="src/templates/default/static/plugin/jquery/jquery-3.5.1.min.js"></script>
-	<script src="src/templates/default/static/plugin/popper.js/popper.min.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/index.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/util.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/tab.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/dropdown.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/collapse.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/button.js"></script>
-	<script src="src/templates/default/static/plugin/bootstrap/js/dist/alert.js"></script>
-	{% if html_modal|raw %}<script src="src/templates/default/static/plugin/bootstrap/js/dist/modal.js"></script>{% endif %}
-	<script type="text/javascript" src="src/templates/default/static/plugin/bootstrap-select/dist/js/bootstrap-select.min.js"></script>
-	<script type="text/javascript" src="src/templates/default/static/plugin/bootstrap-select/dist/js/i18n/defaults-{{ language }}.min.js"></script>
-	<script defer src="src/templates/default/static/plugin/font-awesome/js/solid.min.js"></script>
-	<script defer src="src/templates/default/static/plugin/font-awesome/js/fontawesome.min.js" data-auto-replace-svg="nest"></script>
-	<script type="text/javascript" src="src/templates/default/static/js/scripts.js"></script>
-</body>
+	</aside>
 
+	<div class="app-main">
+		{% if update_available %}<div class="update-banner"><i class="bi bi-stars me-1"></i>{{ update_available|raw }}</div>{% endif %}
+		<header class="app-topbar">
+			<button class="icon-btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Open menu"><i class="bi bi-list"></i></button>
+			<button class="icon-btn d-none d-lg-inline-grid" type="button" onclick="dfsToggleSidebar()" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="bi bi-layout-sidebar"></i></button>
+			<h1 class="page-title text-truncate">{{ subtitle|default(title) }}</h1>
+			<div class="ms-auto d-flex align-items-center gap-2">
+				<button class="icon-btn" type="button" onclick="dfsToggleTheme()" aria-label="Toggle theme" title="Toggle light / dark">
+					<i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
+				</button>
+				{% if nav.user_name is defined %}
+				<div class="dropdown">
+					<a href="#" class="user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+						<span class="avatar">{{ nav.user_initials }}</span>
+						<span class="d-none d-sm-inline fw-medium">{{ nav.user_name }}</span>
+						<i class="bi bi-chevron-down small text-muted"></i>
+					</a>
+					<div class="dropdown-menu dropdown-menu-end">
+						<div class="px-2 py-1 small text-muted">{{ nav.user_level }}</div>
+						<a class="dropdown-item" href="{{ nav.url_profile|raw }}"><i class="bi bi-person"></i>{{ nav.label_profile }}</a>
+						<div class="dropdown-divider"></div>
+						<a class="dropdown-item text-danger" href="{{ nav.url_logout|raw }}"><i class="bi bi-box-arrow-right"></i>{{ nav.label_logout }}</a>
+					</div>
+				</div>
+				{% endif %}
+			</div>
+		</header>
+
+		<main class="app-content" id="main">
+			<noscript><div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i><div>JavaScript is disabled. {{ brand_name }} works best with JavaScript enabled.</div></div></noscript>
+			{% if header_accessories or html_sidebar %}
+			<div class="page-header">
+				<div class="d-flex flex-wrap gap-2 align-items-center">{{ html_sidebar|raw }}</div>
+				<div class="d-flex flex-wrap gap-2 align-items-center">{{ header_accessories|raw }}</div>
+			</div>
+			{% endif %}
+			{% for msg in messages %}
+			<div class="alert alert-{{ msg.class }}" role="alert"><i class="bi bi-{{ alert_icons[msg.class]|default('info-circle') }}"></i><div>{{ msg.message|raw }}</div></div>
+			{% endfor %}
+			<div id="content">{{ html_content|raw }}</div>
+		</main>
+
+		{% if add_footer %}
+		<footer class="app-footer d-flex flex-wrap justify-content-between gap-2">
+			<span>{{ brand_name }} {{ version }} · based on <a href="https://github.com/phpservermon/phpservermon" target="_blank" rel="noopener">PHP Server Monitor</a> (GPL-3.0)</span>
+			<a href="#">{{ label_back_to_top }} <i class="bi bi-arrow-up"></i></a>
+		</footer>
+		{% endif %}
+	</div>
+{% else %}
+	<div class="auth-shell">
+		<section class="auth-hero">
+			<a class="brand border-0 p-0" href="index.php">{{ layout.brand_mark() }}<span class="brand-text">{{ brand_name }}</span></a>
+			<div>
+				<h2 class="mb-3">Know the moment something goes down.</h2>
+				<p class="text-muted mb-4" style="max-width: 26rem;">Website, service and ping monitoring with instant alerts over email, SMS, Pushover, Telegram and Jabber.</p>
+				<div class="hero-strip uptime-strip" aria-hidden="true">
+					{% for i in 1..32 %}<span class="{{ i == 21 ? 'partial' : (i == 22 ? 'down' : 'up') }}"></span>{% endfor %}
+				</div>
+				<div class="uptime-legend hero-strip"><span>24h ago</span><span>99.98% uptime</span><span>now</span></div>
+			</div>
+			<div class="small text-muted">{{ version }} · based on PHP Server Monitor</div>
+		</section>
+		<section class="auth-panel">
+			<div class="auth-card">
+				<div class="d-lg-none mb-4"><a class="brand border-0 p-0" href="index.php">{{ layout.brand_mark() }}<span class="brand-text">{{ brand_name }}</span></a></div>
+				{% for msg in messages %}
+				<div class="alert alert-{{ msg.class }}" role="alert"><i class="bi bi-{{ alert_icons[msg.class]|default('info-circle') }}"></i><div>{{ msg.message|raw }}</div></div>
+				{% endfor %}
+				<div id="content">{{ html_content|raw }}</div>
+				<div class="d-flex justify-content-between align-items-center mt-4 small text-muted">
+					<span>© {{ "now"|date("Y") }} {{ brand_name }}</span>
+					<button class="btn btn-ghost btn-sm" type="button" onclick="dfsToggleTheme()" aria-label="Toggle theme"><i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i></button>
+				</div>
+			</div>
+		</section>
+	</div>
+{% endif %}
+	{{ html_modal|raw }}
+	<script src="src/templates/default/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+	<script src="src/templates/default/static/vendor/tom-select/tom-select.complete.min.js"></script>
+	<script src="src/templates/default/static/js/app.js"></script>
+</body>
 </html>

@@ -1,13 +1,18 @@
 {% import 'main/macros.tpl.html' as macro %}
-<form class="form-reset text-center" method="POST">
-  {{ macro.input_csrf() }}
-  <h1 class="h3 mb-3 font-weight-normal">{{ title_reset }}</h1>
-  <label for="input-username" class="sr-only">{{ label_username }}</label>
-  <input type="text" name="user_name" id="input-username" class="form-control" value="{{ value_user_name }}" required disabled>
-  <label for="input-password" class="sr-only">{{ label_password }}</label>
-  <input type="password" id="input-password" name="user_password_new" class="form-control" placeholder="{{ label_password }}" required autofocus>
-  <label for="input-password-repeat" class="sr-only">{{ label_password_repeat }}</label>
-  <input type="password" id="input-password-repeat" name="user_password_repeat" class="form-control  mb-3" placeholder="{{ label_password_repeat }}" required>
-  <button class="btn btn-lg btn-primary btn-block" type="submit">{{ label_reset }}</button>
-  <a class="btn" href="?">{{ label_go_back }}</a>
+<form method="POST" class="d-flex flex-column gap-3">
+	{{ macro.input_csrf() }}
+	<div class="mb-2">
+		<h1 class="mb-1">{{ title_reset }}</h1>
+		<p class="text-muted mb-0">Choose a new password for <strong class="text-body">{{ value_user_name }}</strong>.</p>
+	</div>
+	<div>
+		<label for="input-password" class="form-label">{{ label_password }}</label>
+		<input type="password" id="input-password" name="user_password_new" class="form-control form-control-lg" autocomplete="new-password" required autofocus>
+	</div>
+	<div>
+		<label for="input-password-repeat" class="form-label">{{ label_password_repeat }}</label>
+		<input type="password" id="input-password-repeat" name="user_password_repeat" class="form-control form-control-lg" autocomplete="new-password" required>
+	</div>
+	<button class="btn btn-primary btn-lg w-100" type="submit">{{ label_reset }}</button>
+	<a class="btn btn-ghost" href="?"><i class="bi bi-arrow-left"></i>{{ label_go_back }}</a>
 </form>

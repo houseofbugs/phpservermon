@@ -33,6 +33,13 @@
 define('PSM_VERSION', '3.5.2');
 
 /**
+ * Product name shown in the UI. Can be overridden in config.php.
+ */
+if (!defined('PSM_BRAND_NAME')) {
+    define('PSM_BRAND_NAME', 'DFS Monitor');
+}
+
+/**
  * URL to check for updates. Will not be checked if turned off on config page.
  * @see psm_update_available()
  */

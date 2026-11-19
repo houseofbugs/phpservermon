@@ -1,152 +1,125 @@
-<script type="text/javascript" src="src/templates/default/static/plugin/momentjs/moment.js"></script>
-<script type="text/javascript" src="src/templates/default/static/plugin/chartjs/chart-2.7.3.min.js"></script>
+<script src="src/templates/default/static/vendor/chartjs/chart.umd.min.js"></script>
+<script src="src/templates/default/static/vendor/chartjs/chartjs-adapter-date-fns.bundle.min.js"></script>
+<div class="row g-4">
 {% for graph in graphs %}
-<div class="chart-container col-10" style="position: relative;  width:60vw">
-	<canvas id="{{ graph.id }}">Your browser does not support the canvas element.</canvas>
-</div>
-<div class="col-md-2">
-	<noscript><div hidden></noscript>
-		<div class="btn-group btn-group-toggle" data-toggle="buttons">
-			{% for button in graph.buttons %}
-			<label class="btn btn-secondary {{ button.class_active }}">
-				<input type="radio" name="{{ graph.button_name }}" value="{{ button.time }}" id="{{ button.unit }}" autocomplete="off" {% if button.class_active %} checked {% endif  %}> {{ button.label }}
-			</label>
-			{% endfor %}
+	<div class="{{ graph.id == 'history_short' ? 'col-12' : 'col-12' }}">
+		<div class="card">
+			<div class="card-header d-flex flex-wrap align-items-center gap-2">
+				<span class="me-auto"><i class="bi bi-{{ graph.id == 'history_short' ? 'activity' : 'calendar3' }} me-2 text-primary"></i>{{ graph.title }}</span>
+				<div class="btn-group btn-group-sm" role="group">
+					{% for button in graph.buttons %}
+					<input type="radio" class="btn-check" name="{{ graph.button_name }}" id="{{ graph.id }}_{{ button.unit }}" value="{{ button.time }}" data-unit="{{ button.unit }}" autocomplete="off" {% if button.class_active %}checked{% endif %}>
+					<label class="btn btn-secondary" for="{{ graph.id }}_{{ button.unit }}">{{ button.label }}</label>
+					{% endfor %}
+				</div>
+			</div>
+			<div class="card-body">
+				<div class="row g-4 align-items-center">
+					<div class="{{ graph.id == 'history_short' ? 'col-lg-9' : 'col-12' }}">
+						<div class="chart-box"><canvas id="{{ graph.id }}" aria-label="{{ graph.title }}"></canvas>{% if not graph.lines %}<div class="chart-empty"><span><i class="bi bi-hourglass-split me-1"></i>Not enough data yet — history is archived daily after the first week.</span></div>{% endif %}</div>
+					</div>
+					{% if graph.id == 'history_short' %}
+					{% set up = graph.uptime|default(0) %}
+					<div class="col-lg-3 d-flex flex-lg-column align-items-center justify-content-center gap-4">
+						<div class="uptime-ring" style="--p: {{ up|round(2) }}; --c: {{ up >= 99 ? 'var(--dfs-up)' : (up >= 95 ? 'var(--dfs-warn)' : 'var(--dfs-down)') }};">
+							<div><span><strong>{{ up|round(2) }}%</strong><small>{{ graph.info.1.label|default('Uptime') }}</small></span></div>
+						</div>
+						<div class="text-center">
+							<div class="card-title-sm">{{ graph.info.0.label }}</div>
+							<div class="fs-4 fw-bold tabular">{{ (graph.latency_avg * 1000)|round }} <small class="fs-6 text-muted fw-medium">ms</small></div>
+						</div>
+					</div>
+					{% endif %}
+				</div>
+			</div>
 		</div>
-	<noscript></div></noscript><div class="w-100"></div>
-	<br>
-	{% if graph.id == 'history_short' %}
-	<div id="meter" data-value="{{ graph.uptime|round(3) }}" translation="{{ graph.info.1.label|lower }}">
-		<span id="needle" style="transform: rotate({{ ((graph.uptime|round/100)*180)|round }}deg);"></span>
-	</div><br>
-	{% endif %}
-		{{ graph.info.0.label }}: {{ graph.info.0.value }}s
-</div>
-
-{% if graph.id == 'history_short' %}
-<script>
-	var historyShort = new Chart(document.getElementById("{{ graph.id }}").getContext('2d'), {
-		type: 'line',
-		data: {
-			datasets: [
-			{
-				data: [{{ graph.lines.offline.value }}],
-				label: '{{ graph.lines.offline.name }}',
-				backgroundColor: '#dc3545',
-				borderColor: '#dc3545',
-				borderWidth: 2,
-				radius: 0,
-				pointStyle: 'crossRot',
-				fill: true,
-				spanGaps: false,
-			},
-			{
-				data: [{{ graph.lines.online.value }}],
-				label: '{{graph.lines.online.name }}',
-				fill: false,
-				spanGaps: false,
-				backgroundColor: '#28a745',
-				borderColor: '#28a745',
-				lineTension: 0,
-				steppedLine: true
-			},
-			]
-		},
-		options: {	
-			scales: {
-				yAxes: [{
-					ticks: {
-						min: 0.0
-					}
-				}],
-				xAxes: [{
-					type: 'time',
-					time: {
-						unit: '{{ graph.unit }}',
-						minUnit: 'hour',
-						min: {{ graph.start_timestamp }},
-						max: {{ graph.end_timestamp }},
-					},
-					distribution: 'linear',
-					ticks: {
-						source: 'auto',
-					}
-				}]
-			}
-		}
-	});
-</script>
-{% elseif graph.id == 'history_long' %}
-<script>
-	var colors = {
-		/*
-			ChartJS example colors
-			red: 'rgb(255, 99, 132)',
-			orange: 'rgb(255, 159, 64)',
-			yellow: 'rgb(255, 205, 86)',
-			green: 'rgb(75, 192, 192)',
-			blue: 'rgb(54, 162, 235)',
-			purple: 'rgb(153, 102, 255)',
-			grey: 'rgb(201, 203, 207)'
-		*/
-		latency_min: 'rgb(255, 99, 132)',
-		latency_avg: 'rgb(54, 162, 235)',
-		latency_max: 'rgb(255, 205, 86)'
-	}
-	var historyLong = new Chart(document.getElementById("{{ graph.id }}").getContext('2d'), {
-		type: 'line',
-		data: {
-			datasets: [
-			{% for key,line in graph.lines %}
-			{
-				data: [{{ line.value|raw }}],
-				label: '{{ line.name }}',
-				backgroundColor: colors['{{key}}'],
-				borderColor: colors['{{key}}'],
-			},
-			{% endfor %}
-			]
-		},
-		options: {
-			animation: {
-				easing: 'easeInOutExpo',
-			},
-			tooltips: {
-				mode: 'index'
-			},
-			scales: {
-				yAxes: [{
-					ticks: {
-						min: 0.0
-					}
-				}],
-				xAxes: [{
-					type: 'time',
-					time: {
-						unit: '{{ graph.unit }}',
-						minUnit: 'day',
-						min: {{ graph.start_timestamp }},
-						max: {{ graph.end_timestamp }},
-					},
-					distribution: 'linear',
-					ticks: {
-						source: 'auto',
-					}
-				}]
-			}
-		}
-	});
-</script>
-{% else %}
-<script>
-	alert('Graph is missing the \'javascript part\'.');
-</script>
-{% endif %}
+	</div>
 {% endfor %}
+</div>
 <script>
-document.onreadystatechange = function () {
-  if (document.readyState === 'interactive') {
-    $.getScript("src/templates/default/static/js/history.js");
-  }
-}
+(function () {
+	var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
+	Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+	var charts = {};
+	function baseOptions(unit, min, max, parser) {
+		return {
+			responsive: true, maintainAspectRatio: false, animation: false,
+			interaction: { mode: 'index', intersect: false },
+			plugins: {
+				legend: { labels: { color: css('--dfs-muted'), usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, font: { family: 'Inter' },
+					generateLabels: function (chart) {
+						return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(function (l) { l.fillStyle = l.strokeStyle; l.fontColor = css('--dfs-muted'); return l; });
+					} } },
+				tooltip: {
+					backgroundColor: css('--dfs-surface-2'), titleColor: css('--dfs-text'), bodyColor: css('--dfs-text'),
+					borderColor: css('--dfs-border'), borderWidth: 1, padding: 10,
+					callbacks: { label: function (ctx) { return ctx.parsed.y === null ? null : ' ' + ctx.dataset.label + ': ' + Math.round(ctx.parsed.y * 1000) + ' ms'; } }
+				}
+			},
+			scales: {
+				x: {
+					type: 'time', min: min, max: max,
+					time: Object.assign({ unit: unit }, parser ? { parser: parser } : {}),
+					grid: { color: css('--dfs-border') }, ticks: { color: css('--dfs-muted'), maxRotation: 0, autoSkipPadding: 16 }
+				},
+				y: {
+					beginAtZero: true,
+					grid: { color: css('--dfs-border') },
+					ticks: { color: css('--dfs-muted'), callback: function (v) { return Math.round(v * 1000) + ' ms'; } }
+				}
+			}
+		};
+	}
+	{% for graph in graphs %}
+	{% if graph.id == 'history_short' %}
+	charts['{{ graph.id }}'] = function () {
+		var up = css('--dfs-up'), down = css('--dfs-down'), accent = css('--dfs-accent');
+		return new Chart(document.getElementById('{{ graph.id }}'), {
+			type: 'line',
+			data: { datasets: [
+				{ label: '{{ graph.lines.online.name|default("online")|e('js') }}', data: [{{ graph.lines.online.value|default('')|raw }}],
+				  borderColor: accent, backgroundColor: accent + '22', fill: true, stepped: true, borderWidth: 2, pointRadius: 0, spanGaps: false },
+				{ label: '{{ graph.lines.offline.name|default("offline")|e('js') }}', data: [{{ graph.lines.offline.value|default('')|raw }}],
+				  borderColor: down, backgroundColor: down + '55', fill: 'origin', borderWidth: 2, pointRadius: 0, spanGaps: false }
+			] },
+			options: baseOptions('{{ graph.unit }}', {{ graph.start_timestamp }}, {{ graph.end_timestamp }})
+		});
+	};
+	{% elseif graph.id == 'history_long' %}
+	charts['{{ graph.id }}'] = function () {
+		var colors = { latency_min: css('--dfs-up'), latency_avg: css('--dfs-accent'), latency_max: css('--dfs-warn') };
+		return new Chart(document.getElementById('{{ graph.id }}'), {
+			type: 'line',
+			data: { datasets: [
+				{% for key, line in graph.lines %}
+				{ label: '{{ line.name|e('js') }}', data: [{{ line.value|raw }}], borderColor: colors['{{ key }}'], backgroundColor: colors['{{ key }}'], tension: .35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+				{% endfor %}
+			] },
+			options: baseOptions('{{ graph.unit }}', {{ graph.start_timestamp }}, {{ graph.end_timestamp }}, 'yyyy-MM-dd HH:mm:ss')
+		});
+	};
+	{% endif %}
+	{% endfor %}
+
+	var instances = {};
+	function build() {
+		Object.keys(charts).forEach(function (id) {
+			if (instances[id]) { instances[id].destroy(); }
+			instances[id] = charts[id]();
+			var checked = document.querySelector('input[name="' + (id === 'history_short' ? 'timeframe_short' : 'timeframe_long') + '"]:checked');
+			if (checked) { applyRange(id, checked); }
+		});
+	}
+	function applyRange(id, input) {
+		var c = instances[id];
+		if (!c) { return; }
+		c.options.scales.x.min = parseInt(input.value, 10);
+		c.options.scales.x.time.unit = input.getAttribute('data-unit');
+		c.update('none');
+	}
+	document.querySelectorAll('input[name=timeframe_short]').forEach(function (i) { i.addEventListener('change', function () { applyRange('history_short', i); }); });
+	document.querySelectorAll('input[name=timeframe_long]').forEach(function (i) { i.addEventListener('change', function () { applyRange('history_long', i); }); });
+	document.addEventListener('dfs:theme', build);
+	build();
+})();
 </script>

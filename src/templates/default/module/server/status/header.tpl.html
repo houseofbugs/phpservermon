@@ -1,16 +1,4 @@
-<div class="row">
-	<noscript><div hidden></noscript>
-	<div class="float-right btn-group btn-group-sm mb-3" role="group">
-		<button type="button" class="btn btn-secondary {% if block_layout_active %} active {% endif %}" 
-			id="block-layout" aria-label="Block layout" 
-			onclick="psm_saveLayout(0)">
-			<i class="fas fa-th"></i>
-		</button>
-		<button type="button" class="btn btn-secondary {% if list_layout_active %} active {% endif %}" 
-			id="table-layout" aria-label="List layout"
-			onclick="psm_saveLayout(1)">
-			<i class="fas fa-bars"></i>
-		</button>
-	</div>
-	<noscript></div></noscript>
+<div class="btn-group btn-group-sm" role="group" aria-label="Layout">
+	<button type="button" class="btn btn-secondary {% if block_layout_active %}active{% endif %}" id="block-layout" aria-label="Grid layout" title="Grid" onclick="psm_saveLayout(0)"><i class="bi bi-grid-3x2-gap"></i></button>
+	<button type="button" class="btn btn-secondary {% if list_layout_active %}active{% endif %}" id="table-layout" aria-label="List layout" title="List" onclick="psm_saveLayout(1)"><i class="bi bi-list-ul"></i></button>
 </div>

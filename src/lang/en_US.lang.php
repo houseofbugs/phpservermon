@@ -484,7 +484,7 @@ $sm_lang = array(
         'password_repeat' => 'Repeat password',
         'password_forgot' => 'Forgot password?',
         'password_reset' => 'Reset password',
-        'password_reset_email_subject' => 'Reset your password for PHP Server Monitor',
+        'password_reset_email_subject' => 'Reset your password for DFS Monitor',
         'password_reset_email_body' => 'Please use the following link to reset your password. Please note it expires
  in 1 hour.<br><br>%link%',
         'error_user_incorrect' => 'The provided username could not be found.',

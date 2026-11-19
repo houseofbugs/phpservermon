@@ -461,7 +461,7 @@ class StatusNotifier
         $pushover->setTitle($title);
         $pushover->setMessage(str_replace('<br/>', "\n", $message));
         $pushover->setUrl(psm_build_url());
-        $pushover->setUrlTitle(psm_get_lang('system', 'title'));
+        $pushover->setUrlTitle(PSM_BRAND_NAME);
 
         // Log
         if (psm_get_conf('log_pushover')) {

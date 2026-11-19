@@ -1,101 +1,67 @@
 {% import 'main/macros.tpl.html' as macro %}
-{{ macro.table_search(label_search) }}
-<div class="table-responsive">
-	<table class="table table-striped table-hover table-bordered">
-		<thead>
-			<tr>
-				<!--class="d-none d-lg-table-cell"-->
-                <th scope="col">{{ label_label }}</th>
-                <th scope="col">{{ label_domain }}</th>
-                <th scope="col" style="width: 5%;">{{ label_port }}</th>
-                <th scope="col" style="width: 8%;">{{ label_type }}</th>
-                <th scope="col" style="width: 8%;">{{ label_rtime }}</th>
-                <th scope="col" style="width: 10%;">{{ label_last_online }}</th>
-                <th scope="col" style="width: 10%;">{{ label_last_offline }}</th>
-                <th scope="col" style="width: 10%;">{{ label_monitoring }}</th>
-                {% if user_level == 10 %}
-                <th scope="col" style="width: 5%;">&#32</th>
-                {% endif %}
-			</tr>
-			<tr class="warning no-result">
-					<td colspan="9"><i class="fas fa-exclamation-triangle"></i> No result</td>
-				  </tr>
-		</thead>
-		<tbody>
-			{% for server in servers %}
-			<tr>
-				<th scope="row">
-					<div class="content">
-						{% if server.status|lower == 'on' %}
-						<i class="fas fa-check-circle" title="{{ server.status }}"></i>&nbsp;
-						{% elseif server.status|lower == 'warning' %}
-						<i class="fas fa-exclamation-triangle" title="{{ server.status }}"></i>&nbsp;
-						{% elseif server.status|lower == 'off' %}
-						<i class="fas fa-times-circle" title="{{ server.status }}"></i>&nbsp;
+{% set type_icons = { 'Website': 'globe2', 'Service': 'plug', 'Ping': 'broadcast' } %}
+<div data-search-scope>
+	<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+		{{ macro.table_search(label_search) }}
+		<span class="text-muted small">{{ servers|length }} monitors</span>
+	</div>
+	<div class="card table-card">
+		<div class="table-responsive">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th scope="col">{{ label_label }}</th>
+						<th scope="col" class="d-none d-md-table-cell">{{ label_domain }}</th>
+						<th scope="col">{{ label_type }}</th>
+						<th scope="col">{{ label_rtime }}</th>
+						<th scope="col">{{ label_last_online }}</th>
+						<th scope="col" class="d-none d-xxl-table-cell">{{ label_last_offline }}</th>
+						<th scope="col">{{ label_monitoring }}</th>
+						{% if user_level == 10 %}<th scope="col" class="text-end"><span class="visually-hidden">{{ label_action }}</span></th>{% endif %}
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="no-result"><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-search"></i> No matching monitors</td></tr>
+					{% for server in servers %}
+					<tr class="clickable" data-href="{{ server.url_view|raw }}">
+						<th scope="row">
+							<div class="d-flex align-items-center gap-2">
+								<span class="dot {{ macro.status_class(server.status) }}" title="{{ server.status }}"></span>
+								<a href="{{ server.url_view|raw }}" class="text-body" title="{{ label_view }}">{{ server.label }}</a>
+							</div>
+						</th>
+						<td class="text-muted text-truncate d-none d-md-table-cell" style="max-width: 220px;">{{ server.ip|striptags }}{% if server.port %}<span class="opacity-75">:{{ server.port }}</span>{% endif %}</td>
+						<td><span class="chip"><i class="bi bi-{{ type_icons[server.type]|default('hdd') }}"></i>{{ server.type }}</span></td>
+						<td class="tabular">{{ (server.rtime * 1000)|round }} ms</td>
+						<td class="text-muted">{{ server.last_online }}</td>
+						<td class="text-muted d-none d-xxl-table-cell">{{ server.last_offline }}</td>
+						<td>
+							<div class="d-flex gap-2 text-muted fs-6">
+								{% if server.active|lower == 'yes' %}<i class="bi bi-eye text-body" title="{{ server.active_title }}"></i>{% else %}<i class="bi bi-eye-slash" title="{{ server.active_title }}"></i>{% endif %}
+								{% if server.email|lower == 'yes' and config.email %}<i class="bi bi-envelope" title="{{ label_email }}"></i>{% endif %}
+								{% if server.sms|lower == 'yes' and config.sms %}<i class="bi bi-phone" title="{{ label_sms }}"></i>{% endif %}
+								{% if server.pushover|lower == 'yes' and config.pushover %}<i class="bi bi-bell" title="{{ label_pushover }}"></i>{% endif %}
+								{% if server.telegram|lower == 'yes' and config.telegram %}<i class="bi bi-telegram" title="{{ label_telegram }}"></i>{% endif %}
+								{% if server.jabber|lower == 'yes' %}<i class="bi bi-chat-dots" title="{{ label_jabber }}"></i>{% endif %}
+							</div>
+						</td>
+						{% if user_level == 10 %}
+						<td class="text-end">
+							<div class="dropdown">
+								<button class="btn btn-ghost btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="bi bi-three-dots"></i></button>
+								<div class="dropdown-menu dropdown-menu-end">
+									<a class="dropdown-item" href="{{ server.url_view|raw }}"><i class="bi bi-eye"></i>{{ label_view }}</a>
+									<a class="dropdown-item" href="{{ server.url_edit|raw }}"><i class="bi bi-pencil"></i>{{ label_edit }}</a>
+									<div class="dropdown-divider"></div>
+									<a class="dropdown-item text-danger show-modal" href="{{ server.url_delete|raw }}" data-modal-id="delete" data-modal-param="{{ server.label }}"><i class="bi bi-trash3"></i>{{ label_delete }}</a>
+								</div>
+							</div>
+						</td>
 						{% endif %}
-						<a href="{{ server.url_view|raw }}" title="{{ label_view }}">
-							{{ server.label }}
-						</a>
-					</div>
-				</th>
-				<td><div class="content">{{ server.ip|raw }}</div></td>
-				<td>{{ server.port }}</td>
-				<td>{{ server.type }}</td>
-				<td>{{ server.rtime }}</td>
-				<td><div class="content">{{ server.last_online }}</div></td>
-				<td><div class="content">{{ server.last_offline }}</div></td>
-				<td>
-					{% if server.active|lower == 'yes'%} 
-						<i class="fas fa-eye" title="{{ server.active_title }}"></i>
-					{% else %}
-						<i class="fas fa-eye-slash" title="{{ server.active_title }}"></i>
-					{% endif %}
-					{% if server.email|lower == 'yes' and config.email|lower%}
-						<i class="fas fa-envelope" title="{{ label_email }}"></i>
-					{% endif %}
-					{% if server.sms|lower == 'yes' and config.sms|lower%}
-						<i class="fas fa-sms" title="{{ label_sms }}"></i>
-					{% endif %}
-					{% if server.pushover|lower == 'yes'and config.pushover|lower %}
-						<span class="fa-layers">
-							<i class="fas fa-circle" title="{{ label_pushover }}"></i>
-							<span class="fa-layers-text fa-inverse" style="font-weight:400; font-size:75%">P</span>
-						</span>
-					{% endif %}
-					{% if server.telegram|lower == 'yes' and config.telegram|lower%}
-						<span class="fa-layers">
-							<i class="fas fa-circle" title="{{ label_telegram }}"></i>
-							<span class="fa-layers-text fa-inverse" style="font-weight:400; font-size:75%">T</span>
-						</span>
-					{% endif %}
-					{% if server.jabber|lower == 'yes'%}
-					<span class="fa-layers">
-							<i class="fas fa-circle" title="{{ label_jabber }}"></i>
-							<span class="fa-layers-text fa-inverse" style="font-weight:400; font-size:75%">J</span>
-						</span>
-					{% endif %}
-				</td>
-				{% if user_level == 10 %}
-				<td>
-					<div class="item-action dropdown">
-						<a data-toggle="dropdown" class="icon"><i class="fas fa-ellipsis-v"></i></a>
-						<div class="dropdown-menu">
-							<a class="dropdown-item" href="{{ server.url_view|raw }}" title="{{ label_view }}">
-								<i class="fas fa-eye"></i> {{ label_view }}
-							</a>
-							<a class="dropdown-item" href="{{ server.url_edit|raw }}" title="{{ label_edit }}">
-								<i class="fas fa-edit"></i> {{ label_edit }}
-							</a>
-							<a class="dropdown-item show-modal" href="{{ server.url_delete|raw }}" title="{{ label_delete }}" data-modal-id="delete"
-							 data-modal-param="{{ server.label }}">
-								<i class="fas fa-trash"></i> {{ label_delete }}
-							</a>
-						</div>
-					</div>
-				</td>
-				{% endif %}
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>

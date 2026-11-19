@@ -87,6 +87,10 @@ class StatusController extends AbstractServerController
         $layout_data['servers_warning'] = array();
         $layout_data['servers_online'] = array();
 
+        $uptime_strips = $this->getUptimeStrips();
+        $latency_sum = 0.0;
+        $latency_count = 0;
+
         foreach ($servers as $server) {
             if ($server['active'] == 'no') {
                 continue;
@@ -101,6 +105,15 @@ class StatusController extends AbstractServerController
             $server['url_view'] = psm_build_url(
                 array('mod' => 'server', 'action' => 'view', 'id' => $server['server_id'], 'back_to' => 'server_status')
             );
+            $server['rtime_ms'] = $server['rtime'] !== null ? (int) round((float) $server['rtime'] * 1000) : null;
+            $server['strip'] = $uptime_strips[(int) $server['server_id']]['buckets'] ?? array_fill(0, 24, 'none');
+            $server['uptime_24h'] = $uptime_strips[(int) $server['server_id']]['uptime'] ?? null;
+            $server['type_label'] = psm_get_lang('servers', 'type_' . $server['type']);
+
+            if ($server['status'] == 'on' && $server['rtime'] !== null) {
+                $latency_sum += (float) $server['rtime'];
+                $latency_count++;
+            }
 
             if ($server['status'] == "off") {
                 $layout_data['servers_offline'][] = $server;
@@ -113,6 +126,17 @@ class StatusController extends AbstractServerController
             }
         }
 
+        $layout_data['kpi'] = array(
+            'total' => count($layout_data['servers_offline']) + count($layout_data['servers_warning'])
+                + count($layout_data['servers_online']),
+            'online' => count($layout_data['servers_online']),
+            'warning' => count($layout_data['servers_warning']),
+            'offline' => count($layout_data['servers_offline']),
+            'latency_ms' => $latency_count > 0 ? (int) round($latency_sum / $latency_count * 1000) : null,
+        );
+        $layout_data['label_uptime'] = psm_get_lang('servers', 'uptime');
+        $layout_data['label_type'] = psm_get_lang('servers', 'type');
+
         if ($this->isXHR() || isset($_SERVER["HTTP_X_REQUESTED_WITH"])) {
             $this->xhr = true;
             //disable auto refresh in ajax return html
@@ -120,6 +144,50 @@ class StatusController extends AbstractServerController
         }
 
         return $this->twig->render('module/server/status/index.tpl.html', $layout_data);
+    }
+
+    /**
+     * Build 24 hourly uptime buckets per server for the last 24 hours.
+     * Each bucket is one of: up, partial, down, none.
+     * @return array server_id => ['buckets' => string[24], 'uptime' => float|null]
+     */
+    protected function getUptimeStrips()
+    {
+        $now = time();
+        $start = $now - 24 * 3600;
+        $rows = $this->db->execute(
+            'SELECT `server_id`, `date`, `status` FROM `' . PSM_DB_PREFIX . 'servers_uptime`
+                WHERE `date` >= :start ORDER BY `date` ASC',
+            array('start' => date('Y-m-d H:i:s', $start))
+        );
+        $agg = array();
+        foreach ((array) $rows as $row) {
+            $sid = (int) $row['server_id'];
+            $idx = (int) floor((strtotime($row['date']) - $start) / 3600);
+            $idx = max(0, min(23, $idx));
+            if (!isset($agg[$sid])) {
+                $agg[$sid] = array('up' => array_fill(0, 24, 0), 'total' => array_fill(0, 24, 0));
+            }
+            $agg[$sid]['total'][$idx]++;
+            if ((int) $row['status'] === 1) {
+                $agg[$sid]['up'][$idx]++;
+            }
+        }
+        $result = array();
+        foreach ($agg as $sid => $data) {
+            $buckets = array();
+            for ($i = 0; $i < 24; $i++) {
+                $t = $data['total'][$i];
+                $u = $data['up'][$i];
+                $buckets[] = $t === 0 ? 'none' : ($u === $t ? 'up' : ($u === 0 ? 'down' : 'partial'));
+            }
+            $total = array_sum($data['total']);
+            $result[$sid] = array(
+                'buckets' => $buckets,
+                'uptime' => $total > 0 ? round(array_sum($data['up']) / $total * 100, 2) : null,
+            );
+        }
+        return $result;
     }
 
     protected function executeSaveLayout()

@@ -1,9 +1,14 @@
 {% import 'main/macros.tpl.html' as macro %}
-<form class="form-forgot text-center" method="POST">
-  {{ macro.input_csrf() }}
-  <h1 class="h3 mb-3 font-weight-normal">{{ title_forgot }}</h1>
-  <label for="input-username" class="sr-only">{{ label_username }}</label>
-  <input type="text" name="user_name" id="input-username" class="form-control mb-3" value="{{ value_user_name }}" placeholder="{{ label_username }}" required autofocus>
-  <button class="btn btn-lg btn-primary btn-block" type="submit">{{ label_submit }}</button>
-  <a class="btn" href="?">{{ label_go_back }}</a>
+<form method="POST" class="d-flex flex-column gap-3">
+	{{ macro.input_csrf() }}
+	<div class="mb-2">
+		<h1 class="mb-1">{{ title_forgot }}</h1>
+		<p class="text-muted mb-0">Enter your username and we'll email you a reset link.</p>
+	</div>
+	<div>
+		<label for="input-username" class="form-label">{{ label_username }}</label>
+		<input type="text" name="user_name" id="input-username" class="form-control form-control-lg" value="{{ value_user_name|default('') }}" autocomplete="username" required autofocus>
+	</div>
+	<button class="btn btn-primary btn-lg w-100" type="submit">{{ label_submit }}</button>
+	<a class="btn btn-ghost" href="?"><i class="bi bi-arrow-left"></i>{{ label_go_back }}</a>
 </form>

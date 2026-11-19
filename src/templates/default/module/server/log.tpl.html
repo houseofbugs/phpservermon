@@ -1,46 +1,46 @@
-<!-- Nav tabs -->
-<ul class="nav nav-tabs" style="width:100%" id="log_tab" role="tablist">
+{% set tab_icons = { 'status': 'activity', 'email': 'envelope', 'sms': 'phone', 'pushover': 'bell', 'telegram': 'telegram', 'jabber': 'chat-dots' } %}
+<ul class="nav nav-underline mb-3" id="log_tab" role="tablist">
 	{% for tab in tabs %}
-	<li class="nav-item">
-		<a class="nav-link {{ tab.tab_active }}" id="log-{{ tab.id }}-tab" data-toggle="tab" href="#log-{{ tab.id }}" role="tab" aria-controls="log-{{ tab.id }}" aria-selected="{% if tab.tab_active %}true{% else %}false{% endif %}">{{ tab.label }}</a>
+	<li class="nav-item" role="presentation">
+		<a class="nav-link {{ tab.tab_active }}" id="log-{{ tab.id }}-tab" data-bs-toggle="tab" href="#log-{{ tab.id }}" role="tab" aria-controls="log-{{ tab.id }}" aria-selected="{% if tab.tab_active %}true{% else %}false{% endif %}">
+			<i class="bi bi-{{ tab_icons[tab.id]|default('journal') }}"></i>{{ tab.label }}
+			<span class="badge rounded-pill text-bg-secondary">{{ tab.entries|length }}</span>
+		</a>
 	</li>
 	{% endfor %}
 </ul>
 <div class="tab-content">
 	{% for tab in tabs %}
-	<div class="tab-pane {{ tab.tab_active }}" id="log-{{ tab.id }}" role="tabpanel" aria-labelledby="log-{{ tab.id }}-tab">
-		<div class="table-responsive">
-			<table class="table table-striped table-hover">
-				<thead>
-					<tr>
-					{% if tab.id|lower == 'status' %}<th scope="col">{{ label_server }}</th>{% endif %}
-					<th scope="col">{{ label_date }}</th>
-					<th scope="col">{{ label_message }}</th>
-					{% if tab.has_users %}<th scope="col">{{ label_users }}</th>{% endif %}
-					</tr>
-				</thead>
-				<tbody>
-					{% for entry in tab.entries %}
-					<tr>
-						{% if entry.server %}
-						<th scope="row"><i class="fas fa-{{ entry.type_icon }}" title="{{ entry.type_title }}"></i> {{ entry.server }}<!-- {{ entry.ip }}--></th>
-						{% endif %}
-						{% if entry.server %}
-							<td><time>{{ entry.datetime_format }}</time></td>
-						{% else %}
-							<th scope="row"><time>{{ entry.datetime_format }}</time></th>
-						{% endif %}
-						<td class="full">{{ entry.message|raw }}</td>
-						{% if tab.has_users %}<td>{{ entry.user_list|raw }}</td>{% endif %}
-					</tr>
-					{% endfor %}
-					{% if tab.no_logs %}
-					<tr>
-						<td colspan="4" class="cell-center full">{{ label_no_logs }}</td>
-					</tr>
-					{% endif %}
-				</tbody>
-			</table>
+	<div class="tab-pane fade {% if tab.tab_active %}show active{% endif %}" id="log-{{ tab.id }}" role="tabpanel" aria-labelledby="log-{{ tab.id }}-tab">
+		<div class="card table-card">
+			{% if tab.no_logs %}
+			<div class="empty-state"><i class="bi bi-inbox"></i>{{ label_no_logs }}</div>
+			{% else %}
+			<div class="table-responsive">
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							{% if tab.id|lower == 'status' %}<th scope="col">{{ label_server }}</th>{% endif %}
+							<th scope="col" style="width: 190px;">{{ label_date }}</th>
+							<th scope="col">{{ label_message }}</th>
+							{% if tab.has_users %}<th scope="col">{{ label_users }}</th>{% endif %}
+						</tr>
+					</thead>
+					<tbody>
+						{% for entry in tab.entries %}
+						<tr>
+							{% if entry.server %}
+							<th scope="row" class="text-nowrap"><i class="bi bi-{{ entry.type_icon == 'globe-americas' ? 'globe2' : 'plug' }} text-muted me-2" title="{{ entry.type_title }}"></i>{{ entry.server }}</th>
+							{% endif %}
+							<td class="text-muted text-nowrap tabular"><time>{{ entry.datetime_format }}</time></td>
+							<td class="text-wrap" style="min-width: 280px;">{{ entry.message|raw }}</td>
+							{% if tab.has_users %}<td class="text-muted">{{ entry.user_list|raw }}</td>{% endif %}
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% endif %}
 		</div>
 	</div>
 	{% endfor %}

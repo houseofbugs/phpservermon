@@ -217,17 +217,19 @@ abstract class AbstractController implements ControllerInterface
         if (!$this->xhr) {
             // in XHR mode, we will not add the main template
             $tpl_data = array(
-                'title' => strtoupper(psm_get_lang('system', 'title')),
+                'title' => PSM_BRAND_NAME,
+                'brand_name' => PSM_BRAND_NAME,
                 'label_back_to_top' => psm_get_lang('system', 'back_to_top'),
                 'add_footer' => $this->add_footer,
                 'version' => 'v' . PSM_VERSION,
                 'messages' => $this->getMessages(),
                 'html_content' => $html,
+                'add_menu' => $this->add_menu,
             );
 
             // add menu to page?
             if ($this->add_menu) {
-                $tpl_data['html_menu'] = $this->createHTMLMenu();
+                $tpl_data['nav'] = $this->getMenuData();
             }
             // add header accessories to page ?
             if ($this->header_accessories) {
@@ -267,10 +269,10 @@ abstract class AbstractController implements ControllerInterface
     }
 
     /**
-     * Create HTML code for the menu
-     * @return string
+     * Get data for the sidebar navigation and user menu
+     * @return array
      */
-    protected function createHTMLMenu()
+    protected function getMenuData()
     {
         $ulvl = $this->getUser()->getUserLevel();
 
@@ -294,24 +296,38 @@ abstract class AbstractController implements ControllerInterface
                 $items = array();
                 break;
         }
+        $icons = array(
+            'server_status' => 'grid-1x2',
+            'server' => 'hdd-stack',
+            'server_log' => 'journal-text',
+            'user' => 'people',
+            'config' => 'sliders',
+            'server_update' => 'arrow-repeat',
+        );
+        $current_mod = psm_GET('mod', PSM_MODULE_DEFAULT);
         $tpl_data['menu'] = array();
         foreach ($items as $key) {
             $tpl_data['menu'][] = array(
-                'active' => ($key == psm_GET('mod')) ? 'active' : '',
+                'active' => ($key == $current_mod) ? 'active' : '',
                 'url' => psm_build_url(array('mod' => $key)),
                 'label' => psm_get_lang('menu', $key),
+                'icon' => isset($icons[$key]) ? $icons[$key] : 'circle',
+                'key' => $key,
             );
         }
 
         if ($ulvl != PSM_USER_ANONYMOUS) {
             $user = $this->getUser()->getUser();
+            $tpl_data['user_name'] = $user->name;
+            $tpl_data['user_initials'] = strtoupper(substr(trim((string) $user->name), 0, 1));
+            $tpl_data['user_level'] = psm_get_lang('users', 'level_' . $user->level);
             $tpl_data['label_usermenu'] = str_replace(
                 '%user_name%',
                 $user->name,
                 psm_get_lang('login', 'welcome_usermenu')
             );
         }
-        return $this->twig->render('main/menu.tpl.html', $tpl_data);
+        return $tpl_data;
     }
 
     /**

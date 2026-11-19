@@ -1,9 +1,8 @@
 {% import 'main/macros.tpl.html' as macro %}
-<form name="edit_profile" class="col-md-6 pl-0 pr-0" action="{{ form_action|raw }}" id="edit_profile" method="post">
+<form name="edit_profile" class="form-narrow" action="{{ form_action|raw }}" id="edit_profile" method="post">
 	{{ macro.input_csrf() }}
 	<!-- General settings -->
-	<fieldset>
-		<legend>{{ label_general }}</legend>
+	<div class="card form-section"><div class="card-header">{{ label_general }}</div><div class="card-body">
 		<!-- Username -->
 		{{ macro.input_field("text", "user_name", null, "user_name", label_user_name, user_name, label_user_name, "64", null, null, null, null, true, true, "username") }}
 		<!-- Name -->
@@ -18,33 +17,30 @@
 		{{ macro.input_field("email", "email", null, "email", label_email, email, label_email, "255", null, null, null, null, true, null, "email") }}
 		<!-- Mobile -->
 		{{ macro.input_field("tel", "mobile", null, "mobile", label_mobile, mobile, label_mobile, "15", null, null, null, null, null, null, "tel") }}
-	</fieldset>
+	</div></div>
 	<!-- Pushover settings -->
-	<fieldset>
-        <legend>{{ label_pushover }}</legend>
+	<div class="card form-section"><div class="card-header">{{ label_pushover }}</div><div class="card-body">
         <p>{{ label_pushover_description|raw }}</p>
 		<!-- pushover key -->
 		{{ macro.input_field("text", "pushover_key", null, "pushover_key", label_pushover_key, pushover_key, label_pushover_key, "255", "pushover_key_help", pushover_key_description) }}
 		<!-- pushover device -->
 		{{ macro.input_field("text", "pushover_device", null, "pushover_device", label_pushover_device, pushover_device, label_pushover_device, "255", "pushover_device_help", pushover_device_description) }}
-	</fieldset>
+	</div></div>
 	<!-- Telegram settings -->
-	<fieldset>
-        <legend>{{ label_telegram }}</legend>
+	<div class="card form-section"><div class="card-header">{{ label_telegram }}</div><div class="card-body">
         <p>{{ label_telegram_description|raw }}</p>
 		<!-- telegram id -->
-		<div class="form-group">
-            <a class="btn btn-primary mb-2" href="{{ telegram_get_chat_id_url }}">{{ label_telegram_get_chat_id }}</a>
+		<div class="mb-3">
+            <a class="btn btn-secondary btn-sm mb-2" href="{{ telegram_get_chat_id_url }}">{{ label_telegram_get_chat_id }}</a>
 		</div>
 		{{ macro.input_field("text", "telegram_id", null, "telegram_id", label_telegram_chat_id, telegram_id, label_telegram_chat_id, "255", "telegram_id_help", telegram_id_description) }}
-		<button class="btn btn-primary show-modal" data-toggle="modal" data-modal-id="activateTelegram">{{ label_activate_telegram }}</button>
+		<button type="button" class="btn btn-secondary show-modal" data-modal-id="activateTelegram">{{ label_activate_telegram }}</button>
 		{{ macro.input_hidden("activate_telegram", "0") }}
-	</fieldset>
+	</div></div>
 	<!-- Jabber settings -->
-	<fieldset>
-		<legend>{{ label_jabber }}</legend>
+	<div class="card form-section"><div class="card-header">{{ label_jabber }}</div><div class="card-body">
 		<!-- jabber -->
 		{{ macro.input_field("text", "jabber", null, "jabber", label_jabber, jabber, label_jabber, "255", "jabber_help", jabber_description) }}
-	</fieldset>
-	{{ macro.button_save(null, label_save) }}
+	</div></div>
+	<div class="form-actions">{{ macro.button_save(null, label_save) }}</div>
 </form>
