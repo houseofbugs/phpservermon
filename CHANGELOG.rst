@@ -2,9 +2,15 @@ Changelog
 =========
 
 
-Not yet released
-----------------
-\-
+v4.0.0 (released November 19, 2026)
+-----------------------------------
+
+* Modernized backend for PHP 8.2–8.4 (Symfony 6.4, Twig 3.14, PHPMailer 6.9+, InnoDB/utf8mb4, ``IntlDateFormatter``, cross-platform ICMP ping).
+* Redesigned 2026 dark-first UI with Bootstrap 5.3, Bootstrap Icons, Chart.js 4, Tom Select, Inter font, 24h uptime strips, and 100% self-hosted assets (jQuery removed).
+* Overhauled notifications: added Targets (Discord, Microsoft Teams, Home Assistant, Generic Webhook) and branded HTML email; removed legacy SMS gateways, Pushover, Telegram, and Jabber.
+* Added public status panel when logged out with Login button, configurable Site title, and per-monitor Public visibility toggle (default hidden).
+* Hardened security: ``install.php`` post-install 403 lock, ``.htaccess`` path lockdown, HttpOnly/SameSite/Secure cookies with per-install HMAC secret, per-IP login rate limiting, forgot-password anti-enumeration, GET/POST CSRF enforcement, CSP/security headers, and SSRF protection.
+* Regenerated matching SVG, PNG, and multi-size ICO favicons/app icons.
 
 v3.5.2 (released August 12, 2020)
 -----------------------------

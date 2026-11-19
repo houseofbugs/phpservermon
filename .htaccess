@@ -6,7 +6,7 @@ Options -Indexes
   RewriteRule ^src(?:/(?!templates/default/static/)|$) - [F,L]
 </IfModule>
 
-<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|md|orig|psd|rst|sh|sql|sw[op]|lock|phar|yaml|yml)|^(?:config\.php|install\.php|composer\.json|Makefile))$">
+<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|md|orig|psd|rst|sh|sql|sw[op]|lock|phar|yaml|yml)|^(?:config\.php|composer\.json|Makefile))$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
