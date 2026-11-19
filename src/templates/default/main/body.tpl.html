@@ -13,9 +13,11 @@
 	<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-title" content="{{ title }}">
-	<link rel="manifest" href="manifest.json">
-	<link rel="icon" type="image/svg+xml" href="favicon.svg">
-	<link rel="alternate icon" href="favicon.ico">
+	<link rel="manifest" href="manifest.json?v={{ version }}">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg?v={{ version }}">
+	<link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v={{ version }}">
+	<link rel="shortcut icon" href="favicon.ico?v={{ version }}">
+	<link rel="apple-touch-icon" href="phpservermon.png?v={{ version }}">
 	<script>
 		(function () {
 			try {

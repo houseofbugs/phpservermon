@@ -1,12 +1,25 @@
 {
-  "name": "DFS Monitor",
-  "short_name": "DFS Monitor",
+  "name": "Server Status Monitor",
+  "short_name": "Status",
   "icons": [
-    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "favicon.png", "sizes": "32x32", "type": "image/png" }
+    {
+      "src": "favicon.svg?v=4.0.0",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "favicon.png?v=4.0.0",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "phpservermon.png?v=4.0.0",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
   ],
   "start_url": "index.php",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b"
+  "background_color": "#090d16",
+  "theme_color": "#06b6d4"
 }
