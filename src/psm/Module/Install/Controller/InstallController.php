@@ -319,13 +319,11 @@ class InstallController extends AbstractController
         $config = "<?php" . PHP_EOL;
 
         foreach ($array_config as $key => $value) {
-            $line = "define('PSM_{key}', '{value}');" . PHP_EOL;
-            $line = str_replace(
-                array('{key}', '{value}'),
-                array(strtoupper($key), $value),
-                $line
-            );
-            $config .= $line;
+            $safeKey = preg_replace('/[^A-Z0-9_]/', '', strtoupper((string) $key));
+            if ($safeKey === '') {
+                continue;
+            }
+            $config .= "define('PSM_" . $safeKey . "', " . var_export((string) $value, true) . ");" . PHP_EOL;
         }
         if (is_writeable($this->path_config)) {
             file_put_contents($this->path_config, $config);

@@ -333,9 +333,9 @@ class StatusUpdater
                     // Check to see if the pattern was [not] found.
                     if (
                         ($this->server['pattern_online'] == 'yes') ==
-                        !preg_match(
-                            "/{$this->server['pattern']}/i",
-                            $curl_result['exec']
+                        !@preg_match(
+                            '~' . addcslashes($this->server['pattern'], '~') . '~i',
+                            (string) $curl_result['exec']
                         )
                     ) {
                         $this->error = "TEXT ERROR : Pattern '{$this->server['pattern']}' " .
@@ -371,16 +371,19 @@ class StatusUpdater
                 if ($this->server['header_name'] != '' && $this->server['header_value'] != '') {
                     $header_flag = false;
                     // Only get the header text if the result also includes the body
-                    $header_text = substr($curl_result['exec'], 0, strpos($curl_result['exec'], "\r\n\r\n"));
+                    $sep_pos = strpos((string) $curl_result['exec'], "\r\n\r\n");
+                    $header_text = $sep_pos !== false
+                        ? substr((string) $curl_result['exec'], 0, $sep_pos)
+                        : (string) $curl_result['exec'];
                     foreach (explode("\r\n", $header_text) as $i => $line) {
                         if ($i === 0 || strpos($line, ':') == false) {
                             continue; // We skip the status code & other non-header lines. Needed for proxy or redirects
                         } else {
-                            list ($key, $value) = explode(': ', $line);
+                            list ($key, $value) = explode(': ', $line, 2);
                             // Header found (case-insensitive)
                             if (strcasecmp($key, $this->server['header_name']) == 0) {
                                 // The value doesn't match what we needed
-                                if (!preg_match("/{$this->server['header_value']}/i", $value)) {
+                                if (!@preg_match('~' . addcslashes($this->server['header_value'], '~') . '~i', $value)) {
                                     $result = false;
                                 } else {
                                     $header_flag = true;

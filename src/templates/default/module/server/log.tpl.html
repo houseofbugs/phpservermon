@@ -33,7 +33,7 @@
 							<th scope="row" class="text-nowrap"><i class="bi bi-{{ entry.type_icon == 'globe-americas' ? 'globe2' : 'plug' }} text-muted me-2" title="{{ entry.type_title }}"></i>{{ entry.server }}</th>
 							{% endif %}
 							<td class="text-muted text-nowrap tabular"><time>{{ entry.datetime_format }}</time></td>
-							<td class="text-wrap" style="min-width: 280px;">{{ entry.message|raw }}</td>
+							<td class="text-wrap" style="min-width: 280px;">{{ entry.message|striptags('<b>,<br>')|raw }}</td>
 							{% if tab.has_users %}<td class="text-muted">{{ entry.user_list|raw }}</td>{% endif %}
 						</tr>
 						{% endfor %}

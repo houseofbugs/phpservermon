@@ -172,16 +172,30 @@ class Router
             $csrf_key = $controller->getCSRFKey();
 
             if (empty($csrf_key)) {
-                if (!hash_equals($session->get('csrf_token'), $token_in)) {
+                if (!is_string($token_in) || !hash_equals((string) $session->get('csrf_token'), $token_in)) {
                     throw new \InvalidArgumentException('invalid_csrf_token');
                 }
             } else {
                 if (
+                    !is_string($token_in) ||
                     !hash_equals(
-                        hash_hmac('sha256', $csrf_key, $session->get('csrf_token2')),
+                        hash_hmac('sha256', $csrf_key, (string) $session->get('csrf_token2')),
                         $token_in
                     )
                 ) {
+                    throw new \InvalidArgumentException('invalid_csrf_token');
+                }
+            }
+        } else {
+            $action_in = (string) $request->query->get('action', '');
+            $mod_in = (string) $request->query->get('mod', '');
+            if (
+                in_array($action_in, array('delete', 'togglePublic', 'applyall'), true)
+                || $mod_in === 'server_update'
+            ) {
+                $session = $this->container->get('user')->getSession();
+                $token_in = (string) $request->query->get('csrf', '');
+                if (empty($token_in) || !hash_equals((string) $session->get('csrf_token'), $token_in)) {
                     throw new \InvalidArgumentException('invalid_csrf_token');
                 }
             }
@@ -237,6 +251,7 @@ class Router
         if (!$session->has('csrf_token2')) {
             $session->set('csrf_token2', random_bytes(32));
         }
+        $GLOBALS['psm_csrf_token'] = $session->get('csrf_token');
 
         $twig->addFunction(
             new \Twig\TwigFunction(

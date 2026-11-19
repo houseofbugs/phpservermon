@@ -83,6 +83,22 @@ class User
      */
     protected $user_is_logged_in = false;
 
+    protected function isHttps()
+    {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    }
+
+    protected function getCookieSecret()
+    {
+        return hash_hmac(
+            'sha256',
+            'psm_rememberme_v4',
+            (string) psm_get_conf('password_encrypt_key', '') . PSM_LOGIN_COOKIE_SECRET_KEY
+        );
+    }
+
     /**
      * Open a new user service
      *
@@ -95,6 +111,13 @@ class User
 
         if (!psm_is_cli()) {
             if ($session == null) {
+                ini_set('session.use_only_cookies', '1');
+                ini_set('session.use_strict_mode', '1');
+                ini_set('session.cookie_httponly', '1');
+                ini_set('session.cookie_samesite', 'Lax');
+                if ($this->isHttps()) {
+                    ini_set('session.cookie_secure', '1');
+                }
                 $session = new Session();
                 $session->start();
             }
@@ -185,19 +208,27 @@ class User
      */
     private function loginWithCookieData()
     {
-        if (isset($_COOKIE['rememberme'])) {
+        if (isset($_COOKIE['rememberme']) && is_string($_COOKIE['rememberme'])) {
             // extract data from the cookie (supports both 3.6 '_' and legacy ':' delimiters)
             $sep = strpos($_COOKIE['rememberme'], '_') !== false ? '_' : ':';
             $parts = explode($sep, $_COOKIE['rememberme']);
             if (count($parts) === 3) {
                 list($user_id, $token, $hash) = $parts;
-                // check cookie hash validity
-                if ($hash == hash('sha256', $user_id . $sep . $token . PSM_LOGIN_COOKIE_SECRET_KEY) && !empty($token)) {
+                $user_id = (int) $user_id;
+                $first_part = $user_id . $sep . $token;
+                // check cookie hash validity (verify per-install secret, with fallback for existing legacy cookies)
+                $valid_hash = hash_equals(hash('sha256', $first_part . $this->getCookieSecret()), (string) $hash)
+                    || hash_equals(hash('sha256', $first_part . PSM_LOGIN_COOKIE_SECRET_KEY), (string) $hash);
+                if ($user_id > 0 && $valid_hash && !empty($token)) {
                     // cookie looks good, try to select corresponding user
                     // get real token from database (and all other data)
                     $user = $this->getUser($user_id);
 
-                    if (!empty($user) && $token === $user->rememberme_token) {
+                    if (
+                        !empty($user)
+                        && !empty($user->rememberme_token)
+                        && hash_equals((string) $user->rememberme_token, (string) $token)
+                    ) {
                         $this->setUserLoggedIn($user->user_id, true);
 
                         // Cookie token usable only once
@@ -290,11 +321,18 @@ class User
 
         // generate cookie string that consists of userid, randomstring and combined hash of both
         $cookie_string_first_part = $this->getUserId() . ':' . $random_token_string;
-        $cookie_string_hash = hash('sha256', $cookie_string_first_part . PSM_LOGIN_COOKIE_SECRET_KEY);
+        $cookie_string_hash = hash('sha256', $cookie_string_first_part . $this->getCookieSecret());
         $cookie_string = $cookie_string_first_part . ':' . $cookie_string_hash;
 
         // set cookie
-        setcookie('rememberme', $cookie_string, time() + PSM_LOGIN_COOKIE_RUNTIME, "/", PSM_LOGIN_COOKIE_DOMAIN ?? '');
+        setcookie('rememberme', $cookie_string, array(
+            'expires' => time() + PSM_LOGIN_COOKIE_RUNTIME,
+            'path' => '/',
+            'domain' => PSM_LOGIN_COOKIE_DOMAIN ?? '',
+            'secure' => $this->isHttps(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ));
     }
 
     /**
@@ -312,7 +350,14 @@ class User
         // set the rememberme-cookie to ten years ago (3600sec * 365 days * 10).
         // that's obivously the best practice to kill a cookie via php
         // @see http://stackoverflow.com/a/686166/1114320
-        setcookie('rememberme', '', time() - (3600 * 3650), '/', PSM_LOGIN_COOKIE_DOMAIN ?? '');
+        setcookie('rememberme', '', array(
+            'expires' => time() - (3600 * 3650),
+            'path' => '/',
+            'domain' => PSM_LOGIN_COOKIE_DOMAIN ?? '',
+            'secure' => $this->isHttps(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ));
     }
 
     /**
@@ -389,7 +434,11 @@ class User
         }
         $user = $this->getUser($user_id);
 
-        if (isset($user->user_id) && $user->password_reset_hash == $token) {
+        if (
+            isset($user->user_id)
+            && !empty($user->password_reset_hash)
+            && hash_equals((string) $user->password_reset_hash, (string) $token)
+        ) {
             $runtime = (defined('PSM_LOGIN_RESET_RUNTIME')) ? PSM_LOGIN_RESET_RUNTIME : 3600;
             $timestamp_max_interval = time() - $runtime;
 

@@ -53,8 +53,8 @@ namespace {
     }
 
     // Debug enabled: report everything
-    // Debug disabled: report error only if created manually
-    ini_set('display_errors', 1);
+    // Debug disabled: hide PHP errors from HTTP responses
+    ini_set('display_errors', PSM_DEBUG ? '1' : '0');
     PSM_DEBUG ? error_reporting(E_ALL) : error_reporting(E_USER_ERROR);
 
     // check for a cron allowed ip array

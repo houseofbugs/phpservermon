@@ -55,22 +55,28 @@ class LoginController extends AbstractController
             die();
         }
         if (isset($_POST['user_name']) && isset($_POST['user_password'])) {
-            $rememberme = (isset($_POST['user_rememberme'])) ? true : false;
-            $result = $this->getUser()->loginWithPostData(
-                $_POST['user_name'],
-                $_POST['user_password'],
-                $rememberme
-            );
-
-            if ($result) {
-                // success login, redirect
-                $target = (empty($_SERVER["QUERY_STRING"]) || psm_GET('mod') === 'user_login')
-                    ? null
-                    : $_SERVER["QUERY_STRING"];
-                header('Location: ' . psm_build_url($target));
-                die();
+            if ($this->isRateLimited('login', 5, 900)) {
+                $this->addMessage('Too many failed login attempts. Please wait 15 minutes and try again.', 'error');
             } else {
-                $this->addMessage(psm_get_lang('login', 'error_login_incorrect'), 'error');
+                $rememberme = (isset($_POST['user_rememberme'])) ? true : false;
+                $result = $this->getUser()->loginWithPostData(
+                    (string) $_POST['user_name'],
+                    (string) $_POST['user_password'],
+                    $rememberme
+                );
+
+                if ($result) {
+                    $this->clearAttempts('login');
+                    // success login, redirect
+                    $target = (empty($_SERVER["QUERY_STRING"]) || psm_GET('mod') === 'user_login')
+                        ? null
+                        : $_SERVER["QUERY_STRING"];
+                    header('Location: ' . psm_build_url($target));
+                    die();
+                } else {
+                    $this->recordAttempt('login', 900);
+                    $this->addMessage(psm_get_lang('login', 'error_login_incorrect'), 'error');
+                }
             }
         }
 
@@ -96,22 +102,23 @@ class LoginController extends AbstractController
     protected function executeForgot()
     {
         if (isset($_POST['user_name'])) {
-            $user = $this->getUser()->getUserByUsername($_POST['user_name']);
+            if (!$this->isRateLimited('forgot', 3, 900)) {
+                $this->recordAttempt('forgot', 900);
+                $user = $this->getUser()->getUserByUsername((string) $_POST['user_name']);
 
-            if (!empty($user)) {
-                $token = $this->getUser()->generatePasswordResetToken($user->user_id);
-                // we have a token, send it along
-                $this->sendPasswordForgotMail(
-                    $user->user_id,
-                    $user->email,
-                    $token
-                );
-
-                $this->addMessage(psm_get_lang('login', 'success_password_forgot'), 'success');
-                return $this->executeLogin();
-            } else {
-                $this->addMessage(psm_get_lang('login', 'error_user_incorrect'), 'error');
+                if (!empty($user)) {
+                    $token = $this->getUser()->generatePasswordResetToken($user->user_id);
+                    // we have a token, send it along
+                    $this->sendPasswordForgotMail(
+                        $user->user_id,
+                        $user->email,
+                        $token
+                    );
+                }
             }
+
+            $this->addMessage(psm_get_lang('login', 'success_password_forgot'), 'success');
+            return $this->executeLogin();
         }
 
         $tpl_data = array(
@@ -188,5 +195,76 @@ class LoginController extends AbstractController
 
         $mail->AddAddress($user_email);
         $mail->Send();
+    }
+
+    /**
+     * Client IP for rate-limiting (Cloudflare header aware).
+     * @return string
+     */
+    protected function rateLimitKey($scope)
+    {
+        $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        return hash('sha256', $scope . ':' . (string) $ip);
+    }
+
+    /**
+     * Load active rate-limit buckets from config, pruning expired entries.
+     * @return array
+     */
+    protected function loadRateLimits()
+    {
+        $raw = (string) psm_get_conf('rate_limits', '{}');
+        $map = json_decode($raw, true);
+        if (!is_array($map)) {
+            return array();
+        }
+        $now = time();
+        foreach ($map as $k => $entry) {
+            if (!is_array($entry) || empty($entry['expires']) || (int) $entry['expires'] <= $now) {
+                unset($map[$k]);
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Persist rate-limit map while staying within config.value varchar(255).
+     */
+    protected function saveRateLimits(array $map)
+    {
+        uasort($map, function ($a, $b) {
+            return ((int) ($b['expires'] ?? 0)) <=> ((int) ($a['expires'] ?? 0));
+        });
+        while (count($map) > 1 && strlen(json_encode($map)) > 250) {
+            array_pop($map);
+        }
+        psm_update_conf('rate_limits', json_encode($map));
+    }
+
+    protected function isRateLimited($scope, $maxAttempts = 5, $windowSeconds = 900)
+    {
+        $map = $this->loadRateLimits();
+        $key = $this->rateLimitKey($scope);
+        return isset($map[$key]) && (int) ($map[$key]['count'] ?? 0) >= $maxAttempts;
+    }
+
+    protected function recordAttempt($scope, $windowSeconds = 900)
+    {
+        $map = $this->loadRateLimits();
+        $key = $this->rateLimitKey($scope);
+        $now = time();
+        $count = isset($map[$key]) ? (int) ($map[$key]['count'] ?? 0) + 1 : 1;
+        $map[$key] = array('count' => $count, 'expires' => $now + $windowSeconds);
+        $this->saveRateLimits($map);
+    }
+
+    protected function clearAttempts($scope)
+    {
+        $map = $this->loadRateLimits();
+        $key = $this->rateLimitKey($scope);
+        if (isset($map[$key])) {
+            unset($map[$key]);
+            $this->saveRateLimits($map);
+        }
     }
 }

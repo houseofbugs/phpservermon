@@ -395,6 +395,11 @@ namespace {
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+            curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+            curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+        }
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
         curl_setopt($ch, CURLOPT_ENCODING, '');
         curl_setopt($ch, CURLOPT_CERTINFO, 1);
     
@@ -770,6 +775,16 @@ namespace {
         if ($params != null) {
             $url .= '?';
             if (is_array($params)) {
+                if (
+                    !empty($GLOBALS['psm_csrf_token'])
+                    && !isset($params['csrf'])
+                    && (
+                        (isset($params['action']) && in_array($params['action'], array('delete', 'togglePublic', 'applyall'), true))
+                        || (isset($params['mod']) && $params['mod'] === 'server_update')
+                    )
+                ) {
+                    $params['csrf'] = $GLOBALS['psm_csrf_token'];
+                }
                 $delim = ($htmlentities) ? '&amp;' : '&';
                 $pairs = array();
                 foreach ($params as $k => $v) {

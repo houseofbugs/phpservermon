@@ -31,5 +31,14 @@ namespace {
 
     require __DIR__ . '/src/bootstrap.php';
 
+    if (defined('PSM_DB_PREFIX') && $db->status()) {
+        psm_load_conf();
+        $installer = new \psm\Util\Install\Installer($db);
+        if (!$installer->isUpgradeRequired()) {
+            header('HTTP/1.1 403 Forbidden');
+            exit('Installation is already complete and up to date.');
+        }
+    }
+
     $router->run('install');
 }

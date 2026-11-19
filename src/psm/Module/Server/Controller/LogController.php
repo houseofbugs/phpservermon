@@ -43,6 +43,7 @@ class LogController extends AbstractServerController
         $this->setActions(array(
             'index', 'delete',
         ), 'index');
+        $this->setMinUserLevelRequiredForAction(PSM_USER_ADMIN, array('delete'));
     }
 
     /**
@@ -123,7 +124,7 @@ class LogController extends AbstractServerController
                 if (!empty($users)) {
                     $names = array();
                     foreach ($users as $user) {
-                        $names[] = $user['name'];
+                        $names[] = htmlspecialchars((string) $user['name'], ENT_QUOTES, 'UTF-8');
                     }
                     $record['users'] = implode('<br/>', $names);
                     $record['user_list'] = implode('&nbsp;&bull; ', $names);
@@ -164,7 +165,7 @@ class LogController extends AbstractServerController
 						AND `us`.`server_id`=`servers`.`server_id`
 						)";
         }
-        $entries = $this->db->query(
+        $entries = $this->db->execute(
             'SELECT ' .
                 '`servers`.`label`, ' .
                 '`servers`.`ip`, ' .
@@ -177,9 +178,10 @@ class LogController extends AbstractServerController
             'FROM `' . PSM_DB_PREFIX . 'log` AS `log` ' .
             'JOIN `' . PSM_DB_PREFIX . 'servers` AS `servers` ON (`servers`.`server_id`=`log`.`server_id`) ' .
             $sql_join .
-            'WHERE `log`.`type`=\'' . $type . '\' ' .
+            'WHERE `log`.`type` = :type ' .
             'ORDER BY `datetime` DESC ' .
-            'LIMIT 0,20'
+            'LIMIT 0,20',
+            array('type' => $type)
         );
         return $entries;
     }

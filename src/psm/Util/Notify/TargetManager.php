@@ -279,10 +279,15 @@ class TargetManager
             CURLOPT_TIMEOUT => 10,
             CURLOPT_HTTPHEADER => $request['headers'],
             CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS => 0,
             CURLOPT_SSL_VERIFYPEER => (bool) $request['verify_tls'],
             CURLOPT_SSL_VERIFYHOST => $request['verify_tls'] ? 2 : 0,
             CURLOPT_USERAGENT => PSM_BRAND_NAME . '/' . PSM_VERSION,
         ));
+        if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+            curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+            curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+        }
         if ($request['body'] !== null) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $request['body']);

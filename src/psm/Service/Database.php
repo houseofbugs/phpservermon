@@ -559,7 +559,9 @@ class Database
      */
     protected function onConnectFailure(\PDOException $e)
     {
-        trigger_error('MySQL connection failed: ' . $e->getMessage(), E_USER_WARNING);
+        error_log('MySQL connection failed: ' . $e->getMessage());
+        $msg = (defined('PSM_DEBUG') && PSM_DEBUG) ? $e->getMessage() : 'See server error log.';
+        trigger_error('MySQL connection failed: ' . $msg, E_USER_WARNING);
         return false;
     }
 
@@ -577,6 +579,8 @@ class Database
      */
     protected function error(\PDOException $e)
     {
-        trigger_error('SQL error: ' . $e->getMessage(), E_USER_WARNING);
+        error_log('SQL error: ' . $e->getMessage());
+        $msg = (defined('PSM_DEBUG') && PSM_DEBUG) ? $e->getMessage() : 'See server error log.';
+        trigger_error('SQL error: ' . $msg, E_USER_WARNING);
     }
 }
